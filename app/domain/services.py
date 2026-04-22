@@ -7,6 +7,9 @@ from uuid import uuid4
 from markdown import markdown
 
 from app.domain.events import (
+    AgentAborted,
+    AgentPromptSubmitted,
+    AgentSteered,
     ControlClaimed,
     ControlReleased,
     FileEdited,
@@ -17,8 +20,8 @@ from app.domain.events import (
     ViewerLeft,
     serialize_event,
 )
-from app.domain.models import Note, Session, SessionStatus
-from app.domain.ports import EventPublisher, Runtime, SessionStore
+from app.domain.models import AgentStatus, Note, Session, SessionStatus
+from app.domain.ports import AgentRuntime, EventPublisher, Runtime, SessionStore
 
 HIDDEN_PATH_PARTS = {".git", "node_modules", "__pycache__", ".pytest_cache", ".DS_Store"}
 
@@ -33,10 +36,12 @@ class SessionService:
         store: SessionStore,
         runtime: Runtime,
         event_publisher: EventPublisher | None = None,
+        agent_runtime: AgentRuntime | None = None,
     ) -> None:
         self.store = store
         self.runtime = runtime
         self.event_publisher = event_publisher
+        self.agent_runtime = agent_runtime
         self._clock = count(1)
 
     def create_session(self, repo_url: str, branch: str = "main") -> Session:
@@ -57,20 +62,29 @@ class SessionService:
     def start_session(self, session_id: str) -> Session:
         session = self.store.get(session_id)
         session.status = SessionStatus.STARTING
+        session.agent_status = AgentStatus.STARTING
         self.store.save(session)
         try:
             workspace = self.runtime.provision_workspace(session.id)
             self.runtime.clone_repo(session.repo_url, session.branch, workspace)
+            if self.agent_runtime is not None:
+                session.agent_session_id = self.agent_runtime.start_agent_session(session.id, workspace)
         except Exception as exc:
             session.status = SessionStatus.FAILED
+            session.agent_status = AgentStatus.FAILED
             self._publish_event(session, SessionFailed(session_id=session_id, error=str(exc)))
             self.store.save(session)
             raise
         session.workspace_path = str(workspace)
         session.status = SessionStatus.READY
+        session.agent_status = AgentStatus.IDLE
         self._publish_event(
             session,
-            SessionStarted(session_id=session_id, workspace_path=session.workspace_path),
+            SessionStarted(
+                session_id=session_id,
+                workspace_path=session.workspace_path,
+                agent_session_id=session.agent_session_id or "",
+            ),
         )
         self.store.save(session)
         return session
@@ -128,11 +142,84 @@ class SessionService:
         self.store.save(session)
         return note
 
+    def prompt_agent(self, session_id: str, user_id: str, text: str) -> Session:
+        session = self.store.get(session_id)
+        self._ensure_controller(session, user_id, action="prompt")
+        assert self.agent_runtime is not None
+
+        previous_status = session.agent_status
+        session.agent_status = AgentStatus.RUNNING
+        self.store.save(session)
+        try:
+            self.agent_runtime.prompt(session.agent_session_id, text)
+        except Exception:
+            session = self.store.get(session_id)
+            if session.agent_status == AgentStatus.RUNNING:
+                # Only roll back our optimistic transition if no runtime event has
+                # already moved the session into a later terminal state.
+                session.agent_status = previous_status
+                self.store.save(session)
+            raise
+
+        session = self.store.get(session_id)
+        self._publish_event(
+            session,
+            AgentPromptSubmitted(session_id=session_id, user_id=user_id, text=text),
+        )
+        self.store.save(session)
+        return session
+
+    def steer_agent(self, session_id: str, user_id: str, text: str) -> Session:
+        session = self.store.get(session_id)
+        self._ensure_controller(session, user_id, action="steer")
+        assert self.agent_runtime is not None
+
+        self.agent_runtime.steer(session.agent_session_id, text)
+        self._publish_event(
+            session,
+            AgentSteered(session_id=session_id, user_id=user_id, text=text),
+        )
+        self.store.save(session)
+        return session
+
+    def abort_agent(self, session_id: str, user_id: str) -> Session:
+        session = self.store.get(session_id)
+        self._ensure_controller(session, user_id, action="abort")
+        assert self.agent_runtime is not None
+
+        self.agent_runtime.abort(session.agent_session_id)
+        session.agent_status = AgentStatus.IDLE
+        self._publish_event(
+            session,
+            AgentAborted(session_id=session_id, user_id=user_id),
+        )
+        self.store.save(session)
+        return session
+
     def list_notes(self, session_id: str) -> list[Note]:
         return list(self.store.get(session_id).notes)
 
     def list_events(self, session_id: str) -> list[dict]:
         return list(self.store.get(session_id).events)
+
+    def record_runtime_event(self, session_id: str, payload: dict) -> Session:
+        session = self.store.get(session_id)
+        event_type = payload.get("type")
+        if event_type == "agent_run_started":
+            session.agent_status = AgentStatus.RUNNING
+        elif event_type == "agent_run_finished":
+            session.agent_status = AgentStatus.IDLE
+        elif event_type == "agent_run_failed":
+            session.agent_status = AgentStatus.FAILED
+        session.events.append(dict(payload))
+        self.store.save(session)
+        return session
+
+    def _ensure_controller(self, session: Session, user_id: str, *, action: str) -> None:
+        if session.controller_id != user_id:
+            raise PermissionError(f"only controller can {action} agent")
+        if session.agent_session_id is None or self.agent_runtime is None:
+            raise ValueError("session has no agent")
 
     def _publish_event(self, session: Session, event: object) -> None:
         session.events.append(serialize_event(event))

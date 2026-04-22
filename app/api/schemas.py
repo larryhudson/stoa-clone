@@ -12,6 +12,8 @@ class SessionResponse(BaseModel):
     branch: str
     status: str
     workspace_path: str | None
+    agent_session_id: str | None
+    agent_status: str
     controller_id: str | None
     viewers: list[str]
 
@@ -39,6 +41,15 @@ class EditFileRequest(BaseModel):
     user_id: str
     path: str
     content: str
+
+
+class AgentPromptRequest(BaseModel):
+    user_id: str
+    text: str
+
+
+class AgentControlRequest(BaseModel):
+    user_id: str
 
 
 class PresenceResponse(BaseModel):

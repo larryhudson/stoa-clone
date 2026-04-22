@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.domain.models import Note, Session, SessionStatus
+from app.domain.models import AgentStatus, Note, Session, SessionStatus
 
 
 class JsonSessionStore:
@@ -40,6 +40,8 @@ class JsonSessionStore:
             "branch": session.branch,
             "status": session.status.value,
             "workspace_path": session.workspace_path,
+            "agent_session_id": session.agent_session_id,
+            "agent_status": session.agent_status.value,
             "viewers": sorted(session.viewers),
             "controller_id": session.controller_id,
             "notes": [
@@ -60,6 +62,8 @@ class JsonSessionStore:
             branch=data["branch"],
             status=SessionStatus(data["status"]),
             workspace_path=data["workspace_path"],
+            agent_session_id=data.get("agent_session_id"),
+            agent_status=AgentStatus(data.get("agent_status", AgentStatus.NOT_STARTED.value)),
             viewers=set(data["viewers"]),
             controller_id=data["controller_id"],
             notes=[Note(**note) for note in data["notes"]],

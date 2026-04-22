@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.dependencies import get_session_service
-from app.api.schemas import ClaimControlRequest, CreateSessionRequest, JoinRequest, PresenceResponse, SessionResponse
+from app.api.schemas import AgentControlRequest, AgentPromptRequest, ClaimControlRequest, CreateSessionRequest, JoinRequest, PresenceResponse, SessionResponse
 from app.domain.services import SessionService
 
 router = APIRouter()
@@ -16,6 +16,8 @@ def to_response(session) -> SessionResponse:
         branch=session.branch,
         status=session.status.value,
         workspace_path=session.workspace_path,
+        agent_session_id=session.agent_session_id,
+        agent_status=session.agent_status.value,
         controller_id=session.controller_id,
         viewers=sorted(session.viewers),
     )
@@ -74,6 +76,57 @@ def join_session(
     service: SessionService = Depends(get_session_service),
 ) -> SessionResponse:
     session = service.join_session(session_id, request.user_id)
+    return to_response(session)
+
+
+@router.post("/sessions/{session_id}/agent/prompt", response_model=SessionResponse)
+def prompt_agent(
+    session_id: str,
+    request: AgentPromptRequest,
+    service: SessionService = Depends(get_session_service),
+) -> SessionResponse:
+    try:
+        session = service.prompt_agent(session_id, request.user_id, request.text)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return to_response(session)
+
+
+@router.post("/sessions/{session_id}/agent/steer", response_model=SessionResponse)
+def steer_agent(
+    session_id: str,
+    request: AgentPromptRequest,
+    service: SessionService = Depends(get_session_service),
+) -> SessionResponse:
+    try:
+        session = service.steer_agent(session_id, request.user_id, request.text)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return to_response(session)
+
+
+@router.post("/sessions/{session_id}/agent/abort", response_model=SessionResponse)
+def abort_agent(
+    session_id: str,
+    request: AgentControlRequest,
+    service: SessionService = Depends(get_session_service),
+) -> SessionResponse:
+    try:
+        session = service.abort_agent(session_id, request.user_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return to_response(session)
 
 

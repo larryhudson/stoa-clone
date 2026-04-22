@@ -11,6 +11,14 @@ class SessionStatus(str, Enum):
     FAILED = "failed"
 
 
+class AgentStatus(str, Enum):
+    NOT_STARTED = "not_started"
+    STARTING = "starting"
+    IDLE = "idle"
+    RUNNING = "running"
+    FAILED = "failed"
+
+
 @dataclass
 class Note:
     author_id: str
@@ -25,6 +33,8 @@ class Session:
     branch: str = "main"
     status: SessionStatus = SessionStatus.CREATED
     workspace_path: str | None = None
+    agent_session_id: str | None = None
+    agent_status: AgentStatus = AgentStatus.NOT_STARTED
     viewers: set[str] = field(default_factory=set)
     controller_id: str | None = None
     notes: list[Note] = field(default_factory=list)

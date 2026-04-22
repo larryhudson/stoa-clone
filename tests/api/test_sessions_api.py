@@ -10,6 +10,8 @@ def test_can_create_and_start_session_via_api(client):
     assert created.status_code == 200
     assert started.status_code == 200
     assert started.json()["status"] == "ready"
+    assert started.json()["agent_session_id"] == f"agent-{session_id}"
+    assert started.json()["agent_status"] == "idle"
 
 
 def test_control_conflict_returns_409(client):

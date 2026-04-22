@@ -20,6 +20,12 @@ uv sync --dev
 uv run pytest -q
 ```
 
+### Run the dev server
+
+```bash
+uv run uvicorn app.main:app --reload
+```
+
 ### Run tests in watch mode
 
 ```bash
@@ -58,6 +64,12 @@ The default app container uses a real git-based runtime for cloning repositories
 
 ```text
 <temp>/stoa-clone-workspaces/<session-id>
+```
+
+For agent execution, the default app container starts `pi` in RPC mode from the session workspace using:
+
+```text
+pi --mode rpc --no-session
 ```
 
 Tests generally use in-memory stores and fake runtimes unless a test explicitly targets persistence or real git cloning behavior.

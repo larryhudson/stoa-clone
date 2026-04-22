@@ -16,4 +16,5 @@ def test_watcher_receives_session_started_event_over_websocket(client):
         "type": "session_started",
         "session_id": session_id,
         "workspace_path": started.json()["workspace_path"],
+        "agent_session_id": started.json()["agent_session_id"],
     }

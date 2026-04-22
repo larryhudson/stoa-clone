@@ -55,6 +55,30 @@ class SessionStarted:
     event_type: ClassVar[str] = "session_started"
     session_id: str
     workspace_path: str
+    agent_session_id: str
+
+
+@dataclass
+class AgentPromptSubmitted:
+    event_type: ClassVar[str] = "agent_prompt_submitted"
+    session_id: str
+    user_id: str
+    text: str
+
+
+@dataclass
+class AgentSteered:
+    event_type: ClassVar[str] = "agent_steered"
+    session_id: str
+    user_id: str
+    text: str
+
+
+@dataclass
+class AgentAborted:
+    event_type: ClassVar[str] = "agent_aborted"
+    session_id: str
+    user_id: str
 
 
 @dataclass
