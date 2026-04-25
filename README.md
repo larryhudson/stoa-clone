@@ -1,177 +1,196 @@
-# stoa-clone
+# multiplayer-agent
 
-Minimal Python backend shell for a multiplayer agent-session web app.
+A small full-stack shell for a multiplayer agent-session app.
+
+The app can create a session for a Git repository, provision a workspace, start a `pi` RPC agent,
+join users into the session, stream typed session events over WebSocket, and drive the agent from
+the browser.
 
 Inspired by https://withstoa.com/
 
-## Development
+## Quick Start
 
-This project uses `uv`.
-
-### Install dependencies
+Install backend dependencies:
 
 ```bash
 uv sync --dev
 ```
 
-### Run tests
-
-```bash
-uv run pytest -q
-```
-
-### Run the full verification sweep
-
-```bash
-make check
-```
-
-`make check` runs backend tests/checks and frontend tests/checks/build.
-
-### Run Python linting, formatting, and type checks
-
-```bash
-uv run ruff check .
-uv run ruff format .
-uv run ty check
-```
-
-### Run pre-commit hooks
-
-This project uses `prek` for Git hooks.
-
-```bash
-uv run prek install
-uv run prek run --all-files
-```
-
-### Run the dev server
-
-```bash
-make dev
-```
-
-`make dev` uses Hivemind to run the backend and frontend dev servers from `Procfile.dev`.
-If needed, install Hivemind with `brew install hivemind`.
-
-## Frontend
-
-The frontend lives under `frontend/` and uses Vite+ + React.
-
-### Install frontend dependencies
+Install frontend dependencies:
 
 ```bash
 cd frontend
 vp install
 ```
 
-If Node is installed through `nvm`, make sure the active shell has your Node bin directory on `PATH`.
+Run the full local app:
 
-### Run frontend tests
+```bash
+make dev
+```
+
+`make dev` uses Hivemind and `Procfile.dev` to run:
+
+- backend: http://127.0.0.1:8000
+- frontend: http://127.0.0.1:5173
+
+If Hivemind is missing:
+
+```bash
+brew install hivemind
+```
+
+Open the frontend, enter a repository URL and branch, then create a session. A session can also be
+opened directly with:
+
+```text
+http://127.0.0.1:5173/?sessionId=<session-id>&userId=user-1
+```
+
+## Runtime Requirements
+
+The default app container uses:
+
+- a JSON-backed session store
+- a git-based runtime for cloning repositories
+- `pi` in RPC mode for agent execution
+
+For agent execution, `pi` must be available on `PATH`:
+
+```text
+pi --mode rpc --no-session
+```
+
+If needed, point the backend at an explicit binary:
+
+```bash
+PI_BIN=/absolute/path/to/pi make dev
+```
+
+Without `pi`, session creation and workspace provisioning can still be exercised, but prompting the
+agent will fail.
+
+## Verification
+
+Run the full verification sweep:
+
+```bash
+make check
+```
+
+`make check` runs:
+
+- backend tests
+- Ruff lint and format checks
+- ty type checks
+- frontend tests
+- Vite+ checks
+- frontend production build
+
+For narrower loops:
+
+```bash
+make check-backend
+make check-frontend
+```
+
+## Backend
+
+The backend is a FastAPI app under `app/`.
+
+Useful commands:
+
+```bash
+uv run pytest -q
+uv run ruff check .
+uv run ruff format .
+uv run ty check
+```
+
+The default session store writes data under the system temp directory:
+
+```text
+<temp>/multiplayer-agent-workspaces/sessions.json
+```
+
+Workspaces are cloned into:
+
+```text
+<temp>/multiplayer-agent-workspaces/<session-id>
+```
+
+Tests generally use in-memory stores and fake runtimes unless a test explicitly targets persistence
+or real git cloning behavior.
+
+## Frontend
+
+The frontend lives under `frontend/` and uses:
+
+- React
+- Vite+
+- TanStack Query
+- Testing Library
+- OpenAPI-generated HTTP types
+- JSON Schema-generated WebSocket event types
+
+Useful commands:
 
 ```bash
 cd frontend
 vp test
-```
-
-### Run frontend checks
-
-```bash
-cd frontend
 vp check
+vp build
+vp dev
 ```
 
-### Generate frontend API types from OpenAPI
+## Generated Types
 
-Export the backend schema first:
+HTTP client types are generated from OpenAPI.
+
+Export the backend OpenAPI schema:
 
 ```bash
 uv run python scripts/export_openapi.py
 ```
 
-Then generate the frontend TypeScript schema:
+Generate the frontend TypeScript schema:
 
 ```bash
 cd frontend
 vp run api:generate
 ```
 
-The frontend uses `openapi-typescript` for schema types and `openapi-fetch` for the runtime client.
+WebSocket session event types are generated from a backend-owned Pydantic discriminated union.
 
-### Generate frontend websocket event types
-
-Export the backend-owned session event JSON Schema first:
+Export the event JSON Schema:
 
 ```bash
 uv run python scripts/export_session_events_schema.py
 ```
 
-Then generate the frontend TypeScript event union:
+Generate the frontend event union:
 
 ```bash
 cd frontend
 vp run events:generate
 ```
 
-The websocket event schema is a Pydantic discriminated union keyed by `type`.
+## Pre-Commit
 
-### Run the frontend dev server
-
-```bash
-cd frontend
-vp dev
-```
-
-### Run tests in watch mode
+This project uses `prek`:
 
 ```bash
-uv run ptw --config pytest.ini -- -q
+uv run prek install
+uv run prek run --all-files
 ```
 
-Run a single test in watch mode:
+## Development Approach
 
-```bash
-uv run ptw --config pytest.ini tests/domain/test_sessions.py::test_can_create_session_for_repo_url -- -q -x
-```
+The repo is developed in small red-green-refactor slices.
 
-## Current TDD workflow
+Prefer focused tests close to the behavior being changed:
 
-The repo is being built red-green from domain tests outward.
-
-A useful pattern is:
-
-```bash
-uv run pytest -q tests/domain/test_sessions.py::test_can_create_session_for_repo_url
-```
-
-## Session storage
-
-The default app container uses a JSON-backed session store.
-
-By default, session data is written under the system temp directory in:
-
-```text
-<temp>/stoa-clone-workspaces/sessions.json
-```
-
-## Runtime
-
-The default app container uses a real git-based runtime for cloning repositories into:
-
-```text
-<temp>/stoa-clone-workspaces/<session-id>
-```
-
-For agent execution, the default app container starts `pi` in RPC mode from the session workspace using:
-
-```text
-pi --mode rpc --no-session
-```
-
-If `pi` is not on the process `PATH`, set `PI_BIN` to an absolute binary path before starting the app or running tests:
-
-```bash
-PI_BIN=/absolute/path/to/pi uv run uvicorn app.main:app --reload
-```
-
-Tests generally use in-memory stores and fake runtimes unless a test explicitly targets persistence or real git cloning behavior.
+- domain/service tests for business rules
+- API tests for HTTP/WebSocket behavior
+- reducer and component tests for frontend state and interaction
+- browser smoke tests only for key end-to-end flows

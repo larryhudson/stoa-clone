@@ -16,7 +16,7 @@ export default function App() {
     <main style={pageStyle}>
       <section style={heroStyle}>
         <div>
-          <p style={kickerStyle}>stoa-clone frontend slice</p>
+          <p style={kickerStyle}>multiplayer-agent</p>
           <h1 style={headlineStyle}>Typed session snapshots with reducer-ready live state</h1>
           <p style={copyStyle}>
             The UI now loads a typed session snapshot over HTTP with TanStack Query. The reducer

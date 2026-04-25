@@ -32,7 +32,7 @@ class Container:
 
 
 def build_container(base_dir: Path | None = None) -> Container:
-    root = base_dir or (Path(gettempdir()) / "stoa-clone-workspaces")
+    root = base_dir or (Path(gettempdir()) / "multiplayer-agent-workspaces")
     store = JsonSessionStore(root / "sessions.json")
     runtime = GitRuntime(root)
     broadcaster = SessionEventBroadcaster()
