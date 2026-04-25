@@ -138,6 +138,10 @@ Keep frontend code and tooling under `frontend/`.
 ### Tooling expectations
 Use the repo tooling before handing work back when it is relevant to the files changed.
 
+Full verification:
+- run `make check` when you want to check everything, especially before committing or handing back a broad change
+- `make check` runs backend tests/checks and frontend tests/checks/build
+
 Backend/Python:
 - dependencies are managed with `uv`
 - tests run with `uv run pytest -q`
