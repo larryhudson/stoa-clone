@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { claimControl, promptAgent } from "../api/sessionCommands";
 import { getSession } from "../api/sessions";
 import { subscribeToSessionEvents } from "../api/sessionEventStream";
 import type { SessionViewModel } from "../lib/sessionTypes";
@@ -10,10 +11,13 @@ import { AgentPanel } from "./AgentPanel";
 
 type SessionPageProps = {
   sessionId: string;
+  userId: string;
 };
 
-export function SessionPage({ sessionId }: SessionPageProps) {
+export function SessionPage({ sessionId, userId }: SessionPageProps) {
   const [session, setSession] = useState<SessionViewModel | null>(null);
+  const [commandError, setCommandError] = useState<string | null>(null);
+  const [isCommandPending, setIsCommandPending] = useState(false);
   const sessionQuery = useQuery({
     queryKey: ["session", sessionId],
     queryFn: async () => sessionFromSnapshot(await getSession(sessionId)),
@@ -51,7 +55,36 @@ export function SessionPage({ sessionId }: SessionPageProps) {
     return <div style={messageStyle}>Failed to load session.</div>;
   }
 
-  return <AgentPanel session={session} />;
+  async function runCommand(command: () => Promise<unknown>) {
+    setCommandError(null);
+    setIsCommandPending(true);
+    try {
+      await command();
+    } catch (error) {
+      setCommandError(error instanceof Error ? error.message : "Command failed");
+    } finally {
+      setIsCommandPending(false);
+    }
+  }
+
+  return (
+    <AgentPanel
+      session={session}
+      userId={userId}
+      commandError={commandError}
+      isCommandPending={isCommandPending}
+      onClaimControl={() => {
+        void runCommand(async () => {
+          setSession(sessionFromSnapshot(await claimControl(sessionId, userId)));
+        });
+      }}
+      onPromptAgent={(text) => {
+        void runCommand(async () => {
+          setSession(sessionFromSnapshot(await promptAgent(sessionId, userId, text)));
+        });
+      }}
+    />
+  );
 }
 
 const messageStyle: React.CSSProperties = {

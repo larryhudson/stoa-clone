@@ -2,6 +2,11 @@ import type { SessionViewModel } from "../lib/sessionTypes";
 
 type AgentPanelProps = {
   session: SessionViewModel;
+  userId?: string;
+  commandError?: string | null;
+  isCommandPending?: boolean;
+  onClaimControl?: () => void;
+  onPromptAgent?: (text: string) => void;
 };
 
 const STATUS_LABELS: Record<SessionViewModel["agent_output_status"], string> = {
@@ -12,9 +17,19 @@ const STATUS_LABELS: Record<SessionViewModel["agent_output_status"], string> = {
   failed: "Run failed",
 };
 
-export function AgentPanel({ session }: AgentPanelProps) {
+export function AgentPanel({
+  session,
+  userId,
+  commandError,
+  isCommandPending = false,
+  onClaimControl,
+  onPromptAgent,
+}: AgentPanelProps) {
   const statusLabel = STATUS_LABELS[session.agent_output_status];
   const output = session.agent_output || "No agent output yet.";
+  const hasControl = userId !== undefined && session.controller_id === userId;
+  const canClaimControl = userId !== undefined && session.controller_id !== userId;
+  const canPrompt = hasControl && session.agent_session_id !== null && !isCommandPending;
 
   return (
     <section style={panelStyle}>
@@ -25,6 +40,56 @@ export function AgentPanel({ session }: AgentPanelProps) {
         </div>
         <span style={badgeStyle(session.agent_output_status)}>{statusLabel}</span>
       </header>
+
+      <div style={controlBarStyle}>
+        <div style={controlStatusStyle}>
+          Controller: <strong>{session.controller_id ?? "none"}</strong>
+        </div>
+        {canClaimControl ? (
+          <button
+            type="button"
+            onClick={onClaimControl}
+            disabled={isCommandPending || onClaimControl === undefined}
+            style={buttonStyle}
+          >
+            Claim control
+          </button>
+        ) : null}
+      </div>
+
+      <form
+        style={promptFormStyle}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const input = new FormData(form).get("prompt");
+          if (typeof input === "string" && input.trim()) {
+            onPromptAgent?.(input.trim());
+            form.reset();
+          }
+        }}
+      >
+        <textarea
+          name="prompt"
+          aria-label="Agent prompt"
+          placeholder={hasControl ? "Send a prompt to the agent" : "Claim control to prompt"}
+          disabled={!canPrompt}
+          style={promptInputStyle}
+        />
+        <button
+          type="submit"
+          disabled={!canPrompt || onPromptAgent === undefined}
+          style={buttonStyle}
+        >
+          Send prompt
+        </button>
+      </form>
+
+      {commandError ? (
+        <div role="alert" style={errorStyle}>
+          {commandError}
+        </div>
+      ) : null}
 
       {session.agent_output_error ? (
         <div role="alert" style={errorStyle}>
@@ -46,6 +111,48 @@ const panelStyle: React.CSSProperties = {
   border: "1px solid #d7d0c4",
   background: "linear-gradient(180deg, #f7f3ea 0%, #efe6d6 100%)",
   boxShadow: "0 20px 50px rgba(73, 54, 28, 0.12)",
+};
+
+const controlBarStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "0.75rem",
+  flexWrap: "wrap",
+};
+
+const controlStatusStyle: React.CSSProperties = {
+  color: "#56452f",
+  fontSize: "0.9rem",
+};
+
+const promptFormStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: "0.75rem",
+  alignItems: "stretch",
+};
+
+const promptInputStyle: React.CSSProperties = {
+  minHeight: "4.5rem",
+  resize: "vertical",
+  borderRadius: "14px",
+  border: "1px solid #cfc3b1",
+  padding: "0.75rem",
+  font: "inherit",
+  color: "#2f2416",
+  background: "#fffaf1",
+};
+
+const buttonStyle: React.CSSProperties = {
+  border: "1px solid #7d5d32",
+  borderRadius: "12px",
+  padding: "0.7rem 0.9rem",
+  font: "inherit",
+  fontWeight: 700,
+  color: "#fffaf1",
+  background: "#6f4b22",
+  cursor: "pointer",
 };
 
 const headerStyle: React.CSSProperties = {

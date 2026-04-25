@@ -1,10 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { SessionPage } from "./SessionPage";
+import * as sessionCommandsApi from "../api/sessionCommands";
 import * as sessionsApi from "../api/sessions";
 import type { SessionEvent } from "../api/sessionEvents";
+
+vi.mock("../api/sessionCommands", () => ({
+  claimControl: vi.fn(),
+  promptAgent: vi.fn(),
+}));
 
 vi.mock("../api/sessions", () => ({
   getSession: vi.fn(),
@@ -31,11 +37,13 @@ class MockWebSocket extends EventTarget {
 
 describe("SessionPage", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     MockWebSocket.instances = [];
     vi.stubGlobal("WebSocket", MockWebSocket);
   });
 
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });
@@ -43,7 +51,7 @@ describe("SessionPage", () => {
   it("shows a loading state while fetching the session snapshot", () => {
     vi.mocked(sessionsApi.getSession).mockReturnValue(new Promise(() => undefined));
 
-    renderWithQueryClient(<SessionPage sessionId="session-1" />);
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
     expect(screen.getByText("Loading session...")).toBeInTheDocument();
   });
@@ -64,7 +72,7 @@ describe("SessionPage", () => {
       viewers: ["user-1"],
     });
 
-    renderWithQueryClient(<SessionPage sessionId="session-1" />);
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
     await waitFor(() => {
       expect(screen.getByText("Fetched session output")).toBeInTheDocument();
@@ -88,7 +96,7 @@ describe("SessionPage", () => {
       viewers: [],
     });
 
-    renderWithQueryClient(<SessionPage sessionId="session-1" />);
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
     await waitFor(() => {
       expect(MockWebSocket.instances).toHaveLength(1);
@@ -137,7 +145,7 @@ describe("SessionPage", () => {
         viewers: [],
       });
 
-    renderWithQueryClient(<SessionPage sessionId="session-1" />);
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
     await waitFor(() => {
       expect(screen.getByText("Initial output")).toBeInTheDocument();
@@ -152,6 +160,102 @@ describe("SessionPage", () => {
       expect(screen.getByText("Refreshed output")).toBeInTheDocument();
     });
     expect(MockWebSocket.instances).toHaveLength(2);
+  });
+
+  it("claims control and enables prompting from the returned snapshot", async () => {
+    vi.mocked(sessionsApi.getSession).mockResolvedValue({
+      id: "session-1",
+      repo_url: "https://github.com/example/repo.git",
+      branch: "main",
+      status: "ready",
+      workspace_path: "/tmp/session-1",
+      agent_session_id: "agent-session-1",
+      agent_status: "idle",
+      agent_output: "",
+      agent_output_status: "empty",
+      agent_output_error: null,
+      controller_id: null,
+      viewers: [],
+    });
+    vi.mocked(sessionCommandsApi.claimControl).mockResolvedValue({
+      id: "session-1",
+      repo_url: "https://github.com/example/repo.git",
+      branch: "main",
+      status: "ready",
+      workspace_path: "/tmp/session-1",
+      agent_session_id: "agent-session-1",
+      agent_status: "idle",
+      agent_output: "",
+      agent_output_status: "empty",
+      agent_output_error: null,
+      controller_id: "user-1",
+      viewers: ["user-1"],
+    });
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Claim control" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Claim control" }));
+
+    await waitFor(() => {
+      expect(sessionCommandsApi.claimControl).toHaveBeenCalledWith("session-1", "user-1");
+    });
+    expect(await screen.findByText("user-1")).toBeInTheDocument();
+    expect(screen.getByLabelText("Agent prompt")).toBeEnabled();
+  });
+
+  it("sends prompts as the current controller", async () => {
+    vi.mocked(sessionsApi.getSession).mockResolvedValue({
+      id: "session-1",
+      repo_url: "https://github.com/example/repo.git",
+      branch: "main",
+      status: "ready",
+      workspace_path: "/tmp/session-1",
+      agent_session_id: "agent-session-1",
+      agent_status: "idle",
+      agent_output: "",
+      agent_output_status: "empty",
+      agent_output_error: null,
+      controller_id: "user-1",
+      viewers: ["user-1"],
+    });
+    vi.mocked(sessionCommandsApi.promptAgent).mockResolvedValue({
+      id: "session-1",
+      repo_url: "https://github.com/example/repo.git",
+      branch: "main",
+      status: "ready",
+      workspace_path: "/tmp/session-1",
+      agent_session_id: "agent-session-1",
+      agent_status: "running",
+      agent_output: "",
+      agent_output_status: "pending",
+      agent_output_error: null,
+      controller_id: "user-1",
+      viewers: ["user-1"],
+    });
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Agent prompt")).toBeEnabled();
+    });
+
+    fireEvent.change(screen.getByLabelText("Agent prompt"), {
+      target: { value: "Summarize this repository" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send prompt" }));
+
+    await waitFor(() => {
+      expect(sessionCommandsApi.promptAgent).toHaveBeenCalledWith(
+        "session-1",
+        "user-1",
+        "Summarize this repository",
+      );
+    });
+    expect(await screen.findByText("Queued")).toBeInTheDocument();
   });
 });
 

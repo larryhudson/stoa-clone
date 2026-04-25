@@ -2,6 +2,7 @@ import { SessionPage } from "./components/SessionPage";
 
 export default function App() {
   const sessionId = new URLSearchParams(window.location.search).get("sessionId") ?? "session-1";
+  const userId = new URLSearchParams(window.location.search).get("userId") ?? "user-1";
 
   return (
     <main style={pageStyle}>
@@ -14,10 +15,12 @@ export default function App() {
             remains the next layer for websocket-driven live event updates.
           </p>
         </div>
-        <div style={pillStyle}>Session: {sessionId}</div>
+        <div style={pillStyle}>
+          Session: {sessionId} | User: {userId}
+        </div>
       </section>
 
-      <SessionPage sessionId={sessionId} />
+      <SessionPage sessionId={sessionId} userId={userId} />
     </main>
   );
 }
