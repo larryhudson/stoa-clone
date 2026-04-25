@@ -1,8 +1,7 @@
 import { SessionPage } from "./components/SessionPage";
 
 export default function App() {
-  const sessionId =
-    new URLSearchParams(window.location.search).get("sessionId") ?? "session-1";
+  const sessionId = new URLSearchParams(window.location.search).get("sessionId") ?? "session-1";
 
   return (
     <main style={pageStyle}>

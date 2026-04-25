@@ -1,3 +1,5 @@
+import pytest
+
 from app.domain.events import FileEdited
 
 
@@ -42,16 +44,15 @@ def test_non_controller_cannot_edit_file_or_publish_event(
     event_publisher.published.clear()
     original_content = (tmp_path / session.id / "README.md").read_text()
 
-    try:
+    with pytest.raises(PermissionError) as exc_info:
         file_editing_service.edit_file(
             session_id=session.id,
             user_id="user-2",
             path="README.md",
             new_content="# Unauthorized\n",
         )
-        assert False, "expected PermissionError"
-    except PermissionError as exc:
-        assert str(exc) == "only controller can edit files"
+
+    assert str(exc_info.value) == "only controller can edit files"
 
     assert (tmp_path / session.id / "README.md").read_text() == original_content
     assert event_publisher.published == []

@@ -14,7 +14,12 @@ from app.main import create_app
 
 
 class ConfigurableFailingRuntime:
-    def __init__(self, *, provision_error: Exception | None = None, clone_error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        provision_error: Exception | None = None,
+        clone_error: Exception | None = None,
+    ) -> None:
         self.provision_error = provision_error
         self.clone_error = clone_error
 

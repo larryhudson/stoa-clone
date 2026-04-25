@@ -3,7 +3,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.dependencies import get_session_service
-from app.api.schemas import AgentControlRequest, AgentPromptRequest, ClaimControlRequest, CreateSessionRequest, JoinRequest, PresenceResponse, SessionResponse
+from app.api.schemas import (
+    AgentControlRequest,
+    AgentPromptRequest,
+    ClaimControlRequest,
+    CreateSessionRequest,
+    JoinRequest,
+    PresenceResponse,
+    SessionResponse,
+)
 from app.domain.services import SessionService
 
 router = APIRouter()

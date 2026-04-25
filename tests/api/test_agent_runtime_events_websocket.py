@@ -72,17 +72,17 @@ class ThreadedEventingFakeAgentRuntime:
         return None
 
 
-
 def test_watcher_receives_prompt_submission_before_live_agent_runtime_events_over_websocket(
     store,
     runtime,
     broadcaster,
 ):
+    from fastapi.testclient import TestClient
+
     from app.container import Container
     from app.domain.services import FileEditingService, FileService, SessionService
     from app.infra.event_publisher import BroadcastingEventPublisher
     from app.main import create_app
-    from fastapi.testclient import TestClient
 
     event_publisher = BroadcastingEventPublisher(broadcaster)
     session_service: SessionService | None = None
@@ -150,11 +150,12 @@ def test_watcher_receives_thread_published_agent_runtime_events_over_websocket(
     runtime,
     broadcaster,
 ):
+    from fastapi.testclient import TestClient
+
     from app.container import Container
     from app.domain.services import FileEditingService, FileService, SessionService
     from app.infra.event_publisher import BroadcastingEventPublisher
     from app.main import create_app
-    from fastapi.testclient import TestClient
 
     event_publisher = BroadcastingEventPublisher(broadcaster)
     session_service: SessionService | None = None

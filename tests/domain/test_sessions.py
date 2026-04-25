@@ -103,7 +103,6 @@ def test_prompt_does_not_overwrite_runtime_finished_status(tmp_path):
     ]
 
 
-
 def test_controller_can_steer_and_abort_running_agent_session(tmp_path):
     runtime = FakeRuntime(tmp_path)
     agent_runtime = FakeAgentRuntime()

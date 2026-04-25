@@ -1,7 +1,6 @@
 import type { SessionEvent, SessionViewModel } from "./sessionTypes";
 
-type SessionSeed = Pick<SessionViewModel, "id" | "repo_url" | "branch"> &
-  Partial<SessionViewModel>;
+type SessionSeed = Pick<SessionViewModel, "id" | "repo_url" | "branch"> & Partial<SessionViewModel>;
 
 export function createSessionState(seed: SessionSeed): SessionViewModel {
   return {
@@ -20,10 +19,7 @@ export function createSessionState(seed: SessionSeed): SessionViewModel {
   };
 }
 
-export function applySessionEvent(
-  state: SessionViewModel,
-  event: SessionEvent,
-): SessionViewModel {
+export function applySessionEvent(state: SessionViewModel, event: SessionEvent): SessionViewModel {
   switch (event.type) {
     case "agent_prompt_submitted":
       return {

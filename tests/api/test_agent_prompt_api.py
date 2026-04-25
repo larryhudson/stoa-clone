@@ -16,7 +16,6 @@ def test_controller_can_submit_prompt_to_agent_via_api(client):
     assert prompted.json()["agent_session_id"] == f"agent-{session_id}"
 
 
-
 def test_non_controller_cannot_submit_prompt_to_agent_via_api(client):
     session_id = client.post(
         "/sessions",
@@ -31,7 +30,6 @@ def test_non_controller_cannot_submit_prompt_to_agent_via_api(client):
 
     assert prompted.status_code == 403
     assert prompted.json() == {"detail": "only controller can prompt agent"}
-
 
 
 def test_controller_can_steer_and_abort_agent_via_api(client):

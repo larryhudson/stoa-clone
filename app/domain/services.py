@@ -68,7 +68,9 @@ class SessionService:
             workspace = self.runtime.provision_workspace(session.id)
             self.runtime.clone_repo(session.repo_url, session.branch, workspace)
             if self.agent_runtime is not None:
-                session.agent_session_id = self.agent_runtime.start_agent_session(session.id, workspace)
+                session.agent_session_id = self.agent_runtime.start_agent_session(
+                    session.id, workspace
+                )
         except Exception as exc:
             session.status = SessionStatus.FAILED
             session.agent_status = AgentStatus.FAILED
@@ -145,7 +147,10 @@ class SessionService:
     def prompt_agent(self, session_id: str, user_id: str, text: str) -> Session:
         session = self.store.get(session_id)
         self._ensure_controller(session, user_id, action="prompt")
-        assert self.agent_runtime is not None
+        agent_runtime = self.agent_runtime
+        agent_session_id = session.agent_session_id
+        assert agent_runtime is not None
+        assert agent_session_id is not None
 
         previous_status = session.agent_status
         session.agent_status = AgentStatus.RUNNING
@@ -158,7 +163,7 @@ class SessionService:
         )
         self.store.save(session)
         try:
-            self.agent_runtime.prompt(session.agent_session_id, text)
+            agent_runtime.prompt(agent_session_id, text)
         except Exception:
             session = self.store.get(session_id)
             if session.agent_status == AgentStatus.RUNNING:
@@ -173,9 +178,12 @@ class SessionService:
     def steer_agent(self, session_id: str, user_id: str, text: str) -> Session:
         session = self.store.get(session_id)
         self._ensure_controller(session, user_id, action="steer")
-        assert self.agent_runtime is not None
+        agent_runtime = self.agent_runtime
+        agent_session_id = session.agent_session_id
+        assert agent_runtime is not None
+        assert agent_session_id is not None
 
-        self.agent_runtime.steer(session.agent_session_id, text)
+        agent_runtime.steer(agent_session_id, text)
         self._publish_event(
             session,
             AgentSteered(session_id=session_id, user_id=user_id, text=text),
@@ -186,9 +194,12 @@ class SessionService:
     def abort_agent(self, session_id: str, user_id: str) -> Session:
         session = self.store.get(session_id)
         self._ensure_controller(session, user_id, action="abort")
-        assert self.agent_runtime is not None
+        agent_runtime = self.agent_runtime
+        agent_session_id = session.agent_session_id
+        assert agent_runtime is not None
+        assert agent_session_id is not None
 
-        self.agent_runtime.abort(session.agent_session_id)
+        agent_runtime.abort(agent_session_id)
         self._publish_event(
             session,
             AgentAborted(session_id=session_id, user_id=user_id),

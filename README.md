@@ -20,6 +20,23 @@ uv sync --dev
 uv run pytest -q
 ```
 
+### Run Python linting, formatting, and type checks
+
+```bash
+uv run ruff check .
+uv run ruff format .
+uv run ty check
+```
+
+### Run pre-commit hooks
+
+This project uses `prek` for Git hooks.
+
+```bash
+uv run prek install
+uv run prek run --all-files
+```
+
 ### Run the dev server
 
 ```bash
@@ -28,13 +45,13 @@ uv run uvicorn app.main:app --reload
 
 ## Frontend
 
-The frontend lives under `frontend/` and uses Vite + React + Vitest.
+The frontend lives under `frontend/` and uses Vite+ + React.
 
 ### Install frontend dependencies
 
 ```bash
 cd frontend
-npm install
+vp install
 ```
 
 If Node is installed through `nvm`, make sure the active shell has your Node bin directory on `PATH`.
@@ -43,7 +60,14 @@ If Node is installed through `nvm`, make sure the active shell has your Node bin
 
 ```bash
 cd frontend
-npm test
+vp test
+```
+
+### Run frontend checks
+
+```bash
+cd frontend
+vp check
 ```
 
 ### Generate frontend API types from OpenAPI
@@ -58,7 +82,7 @@ Then generate the frontend TypeScript schema:
 
 ```bash
 cd frontend
-npm run api:generate
+vp run api:generate
 ```
 
 The frontend uses `openapi-typescript` for schema types and `openapi-fetch` for the runtime client.
@@ -67,7 +91,7 @@ The frontend uses `openapi-typescript` for schema types and `openapi-fetch` for 
 
 ```bash
 cd frontend
-npm run dev
+vp dev
 ```
 
 ### Run tests in watch mode

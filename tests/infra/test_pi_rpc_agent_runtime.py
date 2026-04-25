@@ -5,8 +5,9 @@ import time
 from app.infra.pi_rpc_agent_runtime import PiRpcAgentRuntime
 
 
-
-def test_pi_rpc_agent_runtime_starts_process_in_workspace_and_sends_prompt_and_control_messages(tmp_path):
+def test_pi_rpc_agent_runtime_starts_process_in_workspace_and_sends_prompt_and_control_messages(
+    tmp_path,
+):
     log_path = tmp_path / "pi-rpc.log"
     fake_pi = tmp_path / "fake-pi.py"
     fake_pi.write_text(

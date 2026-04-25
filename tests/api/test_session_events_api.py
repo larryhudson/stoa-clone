@@ -28,7 +28,6 @@ def test_can_fetch_session_event_history_via_api(client):
     ]
 
 
-
 def test_agent_prompt_submission_is_recorded_in_event_history(client):
     session_id = client.post(
         "/sessions",

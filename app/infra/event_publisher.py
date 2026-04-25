@@ -12,7 +12,6 @@ class BroadcastingEventPublisher:
         self.broadcaster.publish(_session_id_for(event), serialize_event(event))
 
 
-
 def _session_id_for(event: object) -> str:
     session_id = getattr(event, "session_id", None)
     if not isinstance(session_id, str):

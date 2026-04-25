@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, is_dataclass
-from typing import ClassVar
+from typing import Any, ClassVar, cast
 
 
 @dataclass
@@ -96,4 +96,4 @@ def serialize_event(event: object) -> dict:
     if not isinstance(event_type, str):
         raise TypeError(f"event has no event_type: {type(event)!r}")
 
-    return {"type": event_type, **asdict(event)}
+    return {"type": event_type, **asdict(cast(Any, event))}

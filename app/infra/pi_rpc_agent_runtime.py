@@ -4,9 +4,9 @@ import json
 import os
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
 from threading import Thread
-from typing import Callable
 
 
 class PiRpcAgentRuntime:

@@ -4,7 +4,6 @@ import anyio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.domain.services import SessionService
-
 from app.infra.websocket_broadcaster import SessionEventBroadcaster, SessionSubscription
 
 router = APIRouter()

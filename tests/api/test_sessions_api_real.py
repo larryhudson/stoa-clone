@@ -17,12 +17,42 @@ def _real_pi_bin() -> str | None:
 def _create_local_repo(tmp_path):
     repo = tmp_path / "origin"
     repo.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True, text=True)
-    subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True, capture_output=True, text=True)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True, capture_output=True, text=True)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
     (repo / "README.md").write_text("# Local Repo\n")
-    subprocess.run(["git", "add", "README.md"], cwd=repo, check=True, capture_output=True, text=True)
-    subprocess.run(["git", "commit", "-m", "init"], cwd=repo, check=True, capture_output=True, text=True)
+    subprocess.run(
+        ["git", "add", "README.md"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "init"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
     return repo
 
 
@@ -78,7 +108,9 @@ def test_session_started_event_is_streamed_over_websocket_with_real_container_an
     client = TestClient(create_app(container=container))
 
     try:
-        session_id = client.post("/sessions", json={"repo_url": str(repo), "branch": "main"}).json()["id"]
+        session_id = client.post(
+            "/sessions", json={"repo_url": str(repo), "branch": "main"}
+        ).json()["id"]
 
         with client.websocket_connect(f"/sessions/{session_id}/events/ws") as websocket:
             started = client.post(f"/sessions/{session_id}/start")
@@ -112,7 +144,9 @@ def test_agent_prompt_submission_is_streamed_over_websocket_with_real_container_
     client = TestClient(create_app(container=container))
 
     try:
-        session_id = client.post("/sessions", json={"repo_url": str(repo), "branch": "main"}).json()["id"]
+        session_id = client.post(
+            "/sessions", json={"repo_url": str(repo), "branch": "main"}
+        ).json()["id"]
         client.post(f"/sessions/{session_id}/start")
         client.post(f"/sessions/{session_id}/control/claim", json={"user_id": "user-1"})
 
@@ -151,7 +185,9 @@ def test_agent_prompt_failure_is_streamed_and_persisted_with_real_container_and_
     client = TestClient(create_app(container=container))
 
     try:
-        session_id = client.post("/sessions", json={"repo_url": str(repo), "branch": "main"}).json()["id"]
+        session_id = client.post(
+            "/sessions", json={"repo_url": str(repo), "branch": "main"}
+        ).json()["id"]
         client.post(f"/sessions/{session_id}/start")
         client.post(f"/sessions/{session_id}/control/claim", json={"user_id": "user-1"})
 

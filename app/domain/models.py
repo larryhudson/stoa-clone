@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class SessionStatus(str, Enum):
+class SessionStatus(StrEnum):
     CREATED = "created"
     STARTING = "starting"
     READY = "ready"
     FAILED = "failed"
 
 
-class AgentStatus(str, Enum):
+class AgentStatus(StrEnum):
     NOT_STARTED = "not_started"
     STARTING = "starting"
     IDLE = "idle"
@@ -19,7 +19,7 @@ class AgentStatus(str, Enum):
     FAILED = "failed"
 
 
-class AgentOutputStatus(str, Enum):
+class AgentOutputStatus(StrEnum):
     EMPTY = "empty"
     PENDING = "pending"
     STREAMING = "streaming"

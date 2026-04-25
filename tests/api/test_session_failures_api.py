@@ -1,7 +1,5 @@
 def test_start_session_failure_returns_500_and_marks_session_failed(make_failing_client):
-    failing_client, store = make_failing_client(
-        provision_error=RuntimeError("clone failed")
-    )
+    failing_client, store = make_failing_client(provision_error=RuntimeError("clone failed"))
 
     session_id = failing_client.post(
         "/sessions",
@@ -15,11 +13,8 @@ def test_start_session_failure_returns_500_and_marks_session_failed(make_failing
     assert store.get(session_id).status.value == "failed"
 
 
-
 def test_agent_start_failure_returns_500_and_marks_session_failed(make_failing_client):
-    failing_client, store = make_failing_client(
-        agent_start_error=RuntimeError("agent failed")
-    )
+    failing_client, store = make_failing_client(agent_start_error=RuntimeError("agent failed"))
 
     session_id = failing_client.post(
         "/sessions",

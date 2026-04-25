@@ -9,9 +9,7 @@ def test_watcher_receives_viewer_left_event_when_viewer_disconnects(client):
     client.post(f"/sessions/{session_id}/join", json={"user_id": "viewer-1"})
 
     with client.websocket_connect(f"/sessions/{session_id}/events/ws") as watcher:
-        with client.websocket_connect(
-            f"/sessions/{session_id}/events/ws?user_id=viewer-1"
-        ):
+        with client.websocket_connect(f"/sessions/{session_id}/events/ws?user_id=viewer-1"):
             pass
 
         message = receive_json_with_timeout(watcher)

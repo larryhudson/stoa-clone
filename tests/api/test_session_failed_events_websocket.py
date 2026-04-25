@@ -2,9 +2,7 @@ from tests.helpers.websocket import receive_json_with_timeout
 
 
 def test_watcher_receives_session_failed_event_over_websocket(make_failing_client):
-    failing_client, _store = make_failing_client(
-        provision_error=RuntimeError("clone failed")
-    )
+    failing_client, _store = make_failing_client(provision_error=RuntimeError("clone failed"))
 
     session_id = failing_client.post(
         "/sessions",

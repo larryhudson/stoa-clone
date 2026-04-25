@@ -1,9 +1,7 @@
-import json
 import sys
 import time
 
 from app.infra.pi_rpc_agent_runtime import PiRpcAgentRuntime
-
 
 
 def test_pi_rpc_agent_runtime_reads_stdout_events_and_normalizes_them(tmp_path):
