@@ -17,9 +17,4 @@ export type SessionViewModel = {
   viewers: string[];
 };
 
-export type SessionEvent =
-  | { type: "agent_prompt_submitted"; session_id: string; user_id: string; text: string }
-  | { type: "agent_run_started"; session_id: string }
-  | { type: "agent_text_delta"; session_id: string; delta: string }
-  | { type: "agent_run_finished"; session_id: string }
-  | { type: "agent_run_failed"; session_id: string; command?: string; error: string };
+export type { SessionEvent } from "../api/sessionEvents";

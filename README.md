@@ -90,6 +90,23 @@ vp run api:generate
 
 The frontend uses `openapi-typescript` for schema types and `openapi-fetch` for the runtime client.
 
+### Generate frontend websocket event types
+
+Export the backend-owned session event JSON Schema first:
+
+```bash
+uv run python scripts/export_session_events_schema.py
+```
+
+Then generate the frontend TypeScript event union:
+
+```bash
+cd frontend
+vp run events:generate
+```
+
+The websocket event schema is a Pydantic discriminated union keyed by `type`.
+
 ### Run the frontend dev server
 
 ```bash

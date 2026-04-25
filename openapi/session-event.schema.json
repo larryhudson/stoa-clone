@@ -1,0 +1,484 @@
+{
+  "$defs": {
+    "AgentAbortedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent_aborted",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "user_id"
+      ],
+      "title": "AgentAbortedEvent",
+      "type": "object"
+    },
+    "AgentPromptSubmittedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent_prompt_submitted",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "user_id",
+        "text"
+      ],
+      "title": "AgentPromptSubmittedEvent",
+      "type": "object"
+    },
+    "AgentRunFailedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "error": {
+          "title": "Error",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent_run_failed",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "error"
+      ],
+      "title": "AgentRunFailedEvent",
+      "type": "object"
+    },
+    "AgentRunFinishedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent_run_finished",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id"
+      ],
+      "title": "AgentRunFinishedEvent",
+      "type": "object"
+    },
+    "AgentRunStartedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent_run_started",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id"
+      ],
+      "title": "AgentRunStartedEvent",
+      "type": "object"
+    },
+    "AgentSteeredEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent_steered",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "user_id",
+        "text"
+      ],
+      "title": "AgentSteeredEvent",
+      "type": "object"
+    },
+    "AgentTextDeltaEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "delta": {
+          "title": "Delta",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent_text_delta",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "delta"
+      ],
+      "title": "AgentTextDeltaEvent",
+      "type": "object"
+    },
+    "ControlClaimedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "control_claimed",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "user_id"
+      ],
+      "title": "ControlClaimedEvent",
+      "type": "object"
+    },
+    "ControlReleasedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "control_released",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "user_id"
+      ],
+      "title": "ControlReleasedEvent",
+      "type": "object"
+    },
+    "FileEditedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "editor_id": {
+          "title": "Editor Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "file_edited",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "path",
+        "editor_id",
+        "content"
+      ],
+      "title": "FileEditedEvent",
+      "type": "object"
+    },
+    "NoteAddedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "author_id": {
+          "title": "Author Id",
+          "type": "string"
+        },
+        "body": {
+          "title": "Body",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "integer"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "note_added",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "author_id",
+        "body",
+        "created_at"
+      ],
+      "title": "NoteAddedEvent",
+      "type": "object"
+    },
+    "SessionFailedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "title": "Error",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "session_failed",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "error"
+      ],
+      "title": "SessionFailedEvent",
+      "type": "object"
+    },
+    "SessionStartedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_session_id": {
+          "title": "Agent Session Id",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "session_started",
+          "title": "Type",
+          "type": "string"
+        },
+        "workspace_path": {
+          "title": "Workspace Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "workspace_path",
+        "agent_session_id"
+      ],
+      "title": "SessionStartedEvent",
+      "type": "object"
+    },
+    "ViewerJoinedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "viewer_joined",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "user_id"
+      ],
+      "title": "ViewerJoinedEvent",
+      "type": "object"
+    },
+    "ViewerLeftEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "viewer_left",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "session_id",
+        "user_id"
+      ],
+      "title": "ViewerLeftEvent",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "agent_aborted": "#/$defs/AgentAbortedEvent",
+      "agent_prompt_submitted": "#/$defs/AgentPromptSubmittedEvent",
+      "agent_run_failed": "#/$defs/AgentRunFailedEvent",
+      "agent_run_finished": "#/$defs/AgentRunFinishedEvent",
+      "agent_run_started": "#/$defs/AgentRunStartedEvent",
+      "agent_steered": "#/$defs/AgentSteeredEvent",
+      "agent_text_delta": "#/$defs/AgentTextDeltaEvent",
+      "control_claimed": "#/$defs/ControlClaimedEvent",
+      "control_released": "#/$defs/ControlReleasedEvent",
+      "file_edited": "#/$defs/FileEditedEvent",
+      "note_added": "#/$defs/NoteAddedEvent",
+      "session_failed": "#/$defs/SessionFailedEvent",
+      "session_started": "#/$defs/SessionStartedEvent",
+      "viewer_joined": "#/$defs/ViewerJoinedEvent",
+      "viewer_left": "#/$defs/ViewerLeftEvent"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/FileEditedEvent"
+    },
+    {
+      "$ref": "#/$defs/NoteAddedEvent"
+    },
+    {
+      "$ref": "#/$defs/ControlClaimedEvent"
+    },
+    {
+      "$ref": "#/$defs/ControlReleasedEvent"
+    },
+    {
+      "$ref": "#/$defs/ViewerJoinedEvent"
+    },
+    {
+      "$ref": "#/$defs/ViewerLeftEvent"
+    },
+    {
+      "$ref": "#/$defs/SessionFailedEvent"
+    },
+    {
+      "$ref": "#/$defs/SessionStartedEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentPromptSubmittedEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentSteeredEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentAbortedEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentRunStartedEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentTextDeltaEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentRunFinishedEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentRunFailedEvent"
+    }
+  ],
+  "title": "SessionEvent"
+}

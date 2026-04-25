@@ -61,5 +61,56 @@ export function applySessionEvent(state: SessionViewModel, event: SessionEvent):
         agent_output_status: "failed",
         agent_output_error: event.error,
       };
+
+    case "session_started":
+      return {
+        ...state,
+        status: "ready",
+        workspace_path: event.workspace_path,
+        agent_session_id: event.agent_session_id,
+        agent_status: "idle",
+      };
+
+    case "session_failed":
+      return {
+        ...state,
+        status: "failed",
+        agent_status: "failed",
+        agent_output_status: "failed",
+        agent_output_error: event.error,
+      };
+
+    case "control_claimed":
+      return {
+        ...state,
+        controller_id: event.user_id,
+        viewers: withViewer(state.viewers, event.user_id),
+      };
+
+    case "control_released":
+      return state.controller_id === event.user_id ? { ...state, controller_id: null } : state;
+
+    case "viewer_joined":
+      return {
+        ...state,
+        viewers: withViewer(state.viewers, event.user_id),
+      };
+
+    case "viewer_left":
+      return {
+        ...state,
+        controller_id: state.controller_id === event.user_id ? null : state.controller_id,
+        viewers: state.viewers.filter((viewer) => viewer !== event.user_id),
+      };
+
+    case "agent_steered":
+    case "agent_aborted":
+    case "file_edited":
+    case "note_added":
+      return state;
   }
+}
+
+function withViewer(viewers: string[], userId: string): string[] {
+  return viewers.includes(userId) ? viewers : [...viewers, userId].sort();
 }

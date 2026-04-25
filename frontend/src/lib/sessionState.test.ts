@@ -75,4 +75,51 @@ describe("sessionState", () => {
     expect(updated.agent_output_error).toBe("No API key found");
     expect(updated.agent_status).toBe("failed");
   });
+
+  it("applies session lifecycle events from the websocket contract", () => {
+    const initial = createSessionState({
+      id: "session-1",
+      repo_url: "https://github.com/example/repo.git",
+      branch: "main",
+      status: "starting",
+      agent_status: "starting",
+    });
+
+    const started = applySessionEvent(initial, {
+      type: "session_started",
+      session_id: "session-1",
+      workspace_path: "/tmp/session-1",
+      agent_session_id: "agent-session-1",
+    });
+
+    expect(started.status).toBe("ready");
+    expect(started.workspace_path).toBe("/tmp/session-1");
+    expect(started.agent_session_id).toBe("agent-session-1");
+    expect(started.agent_status).toBe("idle");
+  });
+
+  it("applies presence and control events from the websocket contract", () => {
+    const initial = createSessionState({
+      id: "session-1",
+      repo_url: "https://github.com/example/repo.git",
+      branch: "main",
+      viewers: ["user-1"],
+    });
+
+    const claimed = applySessionEvent(initial, {
+      type: "control_claimed",
+      session_id: "session-1",
+      user_id: "user-2",
+    });
+    const left = applySessionEvent(claimed, {
+      type: "viewer_left",
+      session_id: "session-1",
+      user_id: "user-2",
+    });
+
+    expect(claimed.controller_id).toBe("user-2");
+    expect(claimed.viewers).toEqual(["user-1", "user-2"]);
+    expect(left.controller_id).toBeNull();
+    expect(left.viewers).toEqual(["user-1"]);
+  });
 });
