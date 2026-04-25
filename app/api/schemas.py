@@ -14,6 +14,9 @@ class SessionResponse(BaseModel):
     workspace_path: str | None
     agent_session_id: str | None
     agent_status: str
+    agent_output: str
+    agent_output_status: str
+    agent_output_error: str | None
     controller_id: str | None
     viewers: list[str]
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import gettempdir
@@ -42,7 +43,11 @@ def build_container(base_dir: Path | None = None) -> Container:
         session_service.record_runtime_event(session_id, payload)
         broadcaster.publish(session_id, payload)
 
-    agent_runtime = PiRpcAgentRuntime(event_handler=handle_runtime_event)
+    pi_bin = os.environ.get("PI_BIN", "pi")
+    agent_runtime = PiRpcAgentRuntime(
+        command=[pi_bin, "--mode", "rpc", "--no-session"],
+        event_handler=handle_runtime_event,
+    )
     session_service.agent_runtime = agent_runtime
 
     return Container(

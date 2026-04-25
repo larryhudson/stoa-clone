@@ -53,3 +53,55 @@ for line in sys.stdin:
 
     runtime._processes_by_agent_session_id[agent_session_id].terminate()
     runtime._processes_by_agent_session_id[agent_session_id].wait(timeout=5)
+
+
+def test_pi_rpc_agent_runtime_normalizes_failed_prompt_response_events(tmp_path):
+    events: list[tuple[str, dict]] = []
+    fake_pi = tmp_path / "fake-pi-error-events.py"
+    fake_pi.write_text(
+        """
+import json
+import sys
+
+for line in sys.stdin:
+    command = json.loads(line)
+    if command.get("type") == "prompt":
+        print(json.dumps({
+            "type": "response",
+            "command": "prompt",
+            "success": False,
+            "error": "No API key found"
+        }), flush=True)
+        break
+""".strip()
+        + "\n"
+    )
+
+    runtime = PiRpcAgentRuntime(
+        command=[sys.executable, str(fake_pi)],
+        event_handler=lambda session_id, payload: events.append((session_id, payload)),
+    )
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    agent_session_id = runtime.start_agent_session("session-1", workspace)
+    runtime.prompt(agent_session_id, "Summarize this repository")
+
+    deadline = time.time() + 3
+    while len(events) < 1 and time.time() < deadline:
+        time.sleep(0.05)
+
+    assert events == [
+        (
+            "session-1",
+            {
+                "type": "agent_run_failed",
+                "session_id": "session-1",
+                "command": "prompt",
+                "error": "No API key found",
+            },
+        ),
+    ]
+
+    runtime._processes_by_agent_session_id[agent_session_id].terminate()
+    runtime._processes_by_agent_session_id[agent_session_id].wait(timeout=5)

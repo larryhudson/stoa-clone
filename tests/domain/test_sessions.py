@@ -93,13 +93,13 @@ def test_prompt_does_not_overwrite_runtime_finished_status(tmp_path):
     assert prompted.agent_status == AgentStatus.IDLE
     assert store.get(session.id).agent_status == AgentStatus.IDLE
     assert prompted.events[-2:] == [
-        {"type": "agent_run_finished", "session_id": session.id},
         {
             "type": "agent_prompt_submitted",
             "session_id": session.id,
             "user_id": "user-1",
             "text": "Summarize this repository",
         },
+        {"type": "agent_run_finished", "session_id": session.id},
     ]
 
 
@@ -129,7 +129,7 @@ def test_controller_can_steer_and_abort_running_agent_session(tmp_path):
     aborted = service.abort_agent(session.id, "user-1")
 
     assert agent_runtime.abort_calls == [f"agent-{session.id}"]
-    assert aborted.agent_status == AgentStatus.IDLE
+    assert aborted.agent_status == AgentStatus.RUNNING
     assert aborted.events[-1] == {
         "type": "agent_aborted",
         "session_id": session.id,

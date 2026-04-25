@@ -16,6 +16,9 @@ def test_can_fetch_session_state_via_api(client):
         "workspace_path": None,
         "agent_session_id": None,
         "agent_status": "not_started",
+        "agent_output": "",
+        "agent_output_status": "empty",
+        "agent_output_error": None,
         "controller_id": None,
         "viewers": [],
     }

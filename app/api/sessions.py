@@ -18,6 +18,9 @@ def to_response(session) -> SessionResponse:
         workspace_path=session.workspace_path,
         agent_session_id=session.agent_session_id,
         agent_status=session.agent_status.value,
+        agent_output=session.agent_output,
+        agent_output_status=session.agent_output_status.value,
+        agent_output_error=session.agent_output_error,
         controller_id=session.controller_id,
         viewers=sorted(session.viewers),
     )

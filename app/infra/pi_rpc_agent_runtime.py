@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import time
 from pathlib import Path
 from threading import Thread
 from typing import Callable
@@ -12,20 +14,25 @@ class PiRpcAgentRuntime:
         self,
         command: list[str] | None = None,
         event_handler: Callable[[str, dict], None] | None = None,
+        startup_grace_period: float = 0.05,
     ) -> None:
         self.command = command or ["pi", "--mode", "rpc", "--no-session"]
         self.event_handler = event_handler
+        self.startup_grace_period = startup_grace_period
         self._processes_by_agent_session_id: dict[str, subprocess.Popen[str]] = {}
 
     def start_agent_session(self, session_id: str, workspace: Path) -> str:
         process = subprocess.Popen(
             self.command,
             cwd=workspace,
+            env=self._subprocess_env(),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             text=True,
         )
+        if self._exited_during_startup(process):
+            raise RuntimeError("agent session failed to start")
         agent_session_id = f"pi-rpc-{session_id}-{process.pid}"
         self._processes_by_agent_session_id[agent_session_id] = process
         Thread(
@@ -56,6 +63,17 @@ class PiRpcAgentRuntime:
             raise RuntimeError("agent session is not running")
         return process
 
+    def _exited_during_startup(self, process: subprocess.Popen[str]) -> bool:
+        if self.startup_grace_period <= 0:
+            return process.poll() is not None
+
+        deadline = time.monotonic() + self.startup_grace_period
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                return True
+            time.sleep(0.01)
+        return process.poll() is not None
+
     def _read_events(self, session_id: str, process: subprocess.Popen[str]) -> None:
         if process.stdout is None:
             return
@@ -74,6 +92,13 @@ class PiRpcAgentRuntime:
             return {"type": "agent_run_started", "session_id": session_id}
         if event_type == "agent_end":
             return {"type": "agent_run_finished", "session_id": session_id}
+        if event_type == "response" and payload.get("success") is False:
+            return {
+                "type": "agent_run_failed",
+                "session_id": session_id,
+                "command": payload.get("command"),
+                "error": payload.get("error", ""),
+            }
         if event_type == "message_update":
             assistant_event = payload.get("assistantMessageEvent", {})
             if assistant_event.get("type") == "text_delta":
@@ -83,3 +108,16 @@ class PiRpcAgentRuntime:
                     "delta": assistant_event.get("delta", ""),
                 }
         return None
+
+    def _subprocess_env(self) -> dict[str, str] | None:
+        executable = self.command[0]
+        if not os.path.isabs(executable):
+            return None
+
+        env = os.environ.copy()
+        bin_dir = str(Path(executable).parent)
+        current_path = env.get("PATH", "")
+        path_parts = current_path.split(os.pathsep) if current_path else []
+        if bin_dir not in path_parts:
+            env["PATH"] = os.pathsep.join([bin_dir, *path_parts]) if path_parts else bin_dir
+        return env

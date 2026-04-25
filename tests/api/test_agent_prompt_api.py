@@ -58,4 +58,4 @@ def test_controller_can_steer_and_abort_agent_via_api(client):
     assert steered.status_code == 200
     assert steered.json()["agent_status"] == "running"
     assert aborted.status_code == 200
-    assert aborted.json()["agent_status"] == "idle"
+    assert aborted.json()["agent_status"] == "running"

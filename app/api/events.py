@@ -22,15 +22,16 @@ async def session_events(websocket: WebSocket, session_id: str, user_id: str | N
             task_group.start_soon(_watch_for_disconnect, websocket, task_group.cancel_scope)
     finally:
         broadcaster.unsubscribe(session_id, subscription)
-        await subscription.receive_stream.aclose()
         if user_id is not None:
             session_service.leave_session(session_id, user_id)
 
 
 async def _forward_events(websocket: WebSocket, subscription: SessionSubscription) -> None:
-    async with subscription.receive_stream:
-        async for payload in subscription.receive_stream:
-            await websocket.send_json(payload)
+    while True:
+        payload = await subscription.queue.get()
+        if payload is None:
+            return
+        await websocket.send_json(payload)
 
 
 async def _watch_for_disconnect(websocket: WebSocket, cancel_scope: anyio.CancelScope) -> None:

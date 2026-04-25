@@ -20,7 +20,7 @@ from app.domain.events import (
     ViewerLeft,
     serialize_event,
 )
-from app.domain.models import AgentStatus, Note, Session, SessionStatus
+from app.domain.models import AgentOutputStatus, AgentStatus, Note, Session, SessionStatus
 from app.domain.ports import AgentRuntime, EventPublisher, Runtime, SessionStore
 
 HIDDEN_PATH_PARTS = {".git", "node_modules", "__pycache__", ".pytest_cache", ".DS_Store"}
@@ -149,6 +149,13 @@ class SessionService:
 
         previous_status = session.agent_status
         session.agent_status = AgentStatus.RUNNING
+        session.agent_output = ""
+        session.agent_output_status = AgentOutputStatus.PENDING
+        session.agent_output_error = None
+        self._publish_event(
+            session,
+            AgentPromptSubmitted(session_id=session_id, user_id=user_id, text=text),
+        )
         self.store.save(session)
         try:
             self.agent_runtime.prompt(session.agent_session_id, text)
@@ -161,13 +168,7 @@ class SessionService:
                 self.store.save(session)
             raise
 
-        session = self.store.get(session_id)
-        self._publish_event(
-            session,
-            AgentPromptSubmitted(session_id=session_id, user_id=user_id, text=text),
-        )
-        self.store.save(session)
-        return session
+        return self.store.get(session_id)
 
     def steer_agent(self, session_id: str, user_id: str, text: str) -> Session:
         session = self.store.get(session_id)
@@ -188,7 +189,6 @@ class SessionService:
         assert self.agent_runtime is not None
 
         self.agent_runtime.abort(session.agent_session_id)
-        session.agent_status = AgentStatus.IDLE
         self._publish_event(
             session,
             AgentAborted(session_id=session_id, user_id=user_id),
@@ -207,10 +207,19 @@ class SessionService:
         event_type = payload.get("type")
         if event_type == "agent_run_started":
             session.agent_status = AgentStatus.RUNNING
+            session.agent_output = ""
+            session.agent_output_status = AgentOutputStatus.STREAMING
+            session.agent_output_error = None
         elif event_type == "agent_run_finished":
             session.agent_status = AgentStatus.IDLE
+            session.agent_output_status = AgentOutputStatus.COMPLETE
         elif event_type == "agent_run_failed":
             session.agent_status = AgentStatus.FAILED
+            session.agent_output_status = AgentOutputStatus.FAILED
+            session.agent_output_error = str(payload.get("error", "")) or None
+        elif event_type == "agent_text_delta":
+            session.agent_output += str(payload.get("delta", ""))
+            session.agent_output_status = AgentOutputStatus.STREAMING
         session.events.append(dict(payload))
         self.store.save(session)
         return session

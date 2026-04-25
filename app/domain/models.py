@@ -19,6 +19,14 @@ class AgentStatus(str, Enum):
     FAILED = "failed"
 
 
+class AgentOutputStatus(str, Enum):
+    EMPTY = "empty"
+    PENDING = "pending"
+    STREAMING = "streaming"
+    COMPLETE = "complete"
+    FAILED = "failed"
+
+
 @dataclass
 class Note:
     author_id: str
@@ -35,6 +43,9 @@ class Session:
     workspace_path: str | None = None
     agent_session_id: str | None = None
     agent_status: AgentStatus = AgentStatus.NOT_STARTED
+    agent_output: str = ""
+    agent_output_status: AgentOutputStatus = AgentOutputStatus.EMPTY
+    agent_output_error: str | None = None
     viewers: set[str] = field(default_factory=set)
     controller_id: str | None = None
     notes: list[Note] = field(default_factory=list)
