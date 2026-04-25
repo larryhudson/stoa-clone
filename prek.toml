@@ -32,7 +32,7 @@ hooks = [
   {
     id = "vite-plus-check",
     name = "vite+ check",
-    entry = "sh -c 'cd frontend && vp check --fix'",
+    entry = "sh -c 'cd frontend && npm run check -- --fix'",
     language = "system",
     files = "^frontend/(src/.*|index\\.html|package(-lock)?\\.json|vite\\.config\\.ts|tsconfig.*\\.json)$",
     pass_filenames = false,
