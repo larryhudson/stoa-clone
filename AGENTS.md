@@ -148,6 +148,10 @@ Frontend:
 - use Vite+ commands (`vp dev`, `vp test`, `vp check`, `vp build`)
 - prefer `npm run ...` from root-level hooks or CI when a local frontend binary must be on `PATH`
 
+Local dev server:
+- `make dev` is the preferred way to run the full local app
+- `make dev` uses Hivemind with `Procfile.dev` to run backend and frontend servers together
+
 Pre-commit/CI:
 - `prek` is the pre-commit runner
 - `uv run prek run --all-files` is the full lint/format/type-check sweep

@@ -40,8 +40,11 @@ uv run prek run --all-files
 ### Run the dev server
 
 ```bash
-uv run uvicorn app.main:app --reload
+make dev
 ```
+
+`make dev` uses Hivemind to run the backend and frontend dev servers from `Procfile.dev`.
+If needed, install Hivemind with `brew install hivemind`.
 
 ## Frontend
 
