@@ -23,6 +23,10 @@ class MockWebSocket extends EventTarget {
   receive(event: SessionEvent) {
     this.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(event) }));
   }
+
+  disconnect() {
+    this.dispatchEvent(new CloseEvent("close"));
+  }
 }
 
 describe("SessionPage", () => {
@@ -33,6 +37,7 @@ describe("SessionPage", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("shows a loading state while fetching the session snapshot", () => {
@@ -99,6 +104,54 @@ describe("SessionPage", () => {
       expect(screen.getByText("Live output")).toBeInTheDocument();
     });
     expect(screen.getByText("Streaming")).toBeInTheDocument();
+  });
+
+  it("refreshes the session snapshot before reconnecting after websocket disconnect", async () => {
+    vi.mocked(sessionsApi.getSession)
+      .mockResolvedValueOnce({
+        id: "session-1",
+        repo_url: "https://github.com/example/repo.git",
+        branch: "main",
+        status: "ready",
+        workspace_path: "/tmp/session-1",
+        agent_session_id: "agent-session-1",
+        agent_status: "idle",
+        agent_output: "Initial output",
+        agent_output_status: "complete",
+        agent_output_error: null,
+        controller_id: null,
+        viewers: [],
+      })
+      .mockResolvedValueOnce({
+        id: "session-1",
+        repo_url: "https://github.com/example/repo.git",
+        branch: "main",
+        status: "ready",
+        workspace_path: "/tmp/session-1",
+        agent_session_id: "agent-session-1",
+        agent_status: "idle",
+        agent_output: "Refreshed output",
+        agent_output_status: "complete",
+        agent_output_error: null,
+        controller_id: null,
+        viewers: [],
+      });
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Initial output")).toBeInTheDocument();
+    });
+
+    vi.useFakeTimers();
+    MockWebSocket.instances[0].disconnect();
+    await vi.advanceTimersByTimeAsync(500);
+    vi.useRealTimers();
+
+    await waitFor(() => {
+      expect(screen.getByText("Refreshed output")).toBeInTheDocument();
+    });
+    expect(MockWebSocket.instances).toHaveLength(2);
   });
 });
 

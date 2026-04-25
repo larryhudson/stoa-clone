@@ -30,9 +30,17 @@ export function SessionPage({ sessionId }: SessionPageProps) {
       return;
     }
 
-    return subscribeToSessionEvents(sessionId, (event) => {
-      setSession((current) => (current ? applySessionEvent(current, event) : current));
-    });
+    return subscribeToSessionEvents(
+      sessionId,
+      (event) => {
+        setSession((current) => (current ? applySessionEvent(current, event) : current));
+      },
+      {
+        onReconnect: async () => {
+          setSession(sessionFromSnapshot(await getSession(sessionId)));
+        },
+      },
+    );
   }, [sessionId, sessionQuery.data]);
 
   if (sessionQuery.isPending) {
