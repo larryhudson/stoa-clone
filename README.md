@@ -20,6 +20,14 @@ uv sync --dev
 uv run pytest -q
 ```
 
+### Run the full verification sweep
+
+```bash
+make check
+```
+
+`make check` runs backend tests/checks and frontend tests/checks/build.
+
 ### Run Python linting, formatting, and type checks
 
 ```bash
