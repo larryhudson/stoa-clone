@@ -7,6 +7,8 @@ type AgentPanelProps = {
   isCommandPending?: boolean;
   onClaimControl?: () => void;
   onPromptAgent?: (text: string) => void;
+  onSteerAgent?: (text: string) => void;
+  onAbortAgent?: () => void;
 };
 
 const STATUS_LABELS: Record<SessionViewModel["agent_output_status"], string> = {
@@ -24,12 +26,15 @@ export function AgentPanel({
   isCommandPending = false,
   onClaimControl,
   onPromptAgent,
+  onSteerAgent,
+  onAbortAgent,
 }: AgentPanelProps) {
   const statusLabel = STATUS_LABELS[session.agent_output_status];
   const output = session.agent_output || "No agent output yet.";
   const hasControl = userId !== undefined && session.controller_id === userId;
   const canClaimControl = userId !== undefined && session.controller_id !== userId;
   const canPrompt = hasControl && session.agent_session_id !== null && !isCommandPending;
+  const canSteer = canPrompt && session.agent_status === "running";
 
   return (
     <section style={panelStyle}>
@@ -45,16 +50,28 @@ export function AgentPanel({
         <div style={controlStatusStyle}>
           Controller: <strong>{session.controller_id ?? "none"}</strong>
         </div>
-        {canClaimControl ? (
-          <button
-            type="button"
-            onClick={onClaimControl}
-            disabled={isCommandPending || onClaimControl === undefined}
-            style={buttonStyle}
-          >
-            Claim control
-          </button>
-        ) : null}
+        <div style={controlActionsStyle}>
+          {canSteer ? (
+            <button
+              type="button"
+              onClick={onAbortAgent}
+              disabled={isCommandPending || onAbortAgent === undefined}
+              style={dangerButtonStyle}
+            >
+              Abort run
+            </button>
+          ) : null}
+          {canClaimControl ? (
+            <button
+              type="button"
+              onClick={onClaimControl}
+              disabled={isCommandPending || onClaimControl === undefined}
+              style={buttonStyle}
+            >
+              Claim control
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <form
@@ -84,6 +101,36 @@ export function AgentPanel({
           Send prompt
         </button>
       </form>
+
+      {canSteer ? (
+        <form
+          style={promptFormStyle}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const input = new FormData(form).get("steer");
+            if (typeof input === "string" && input.trim()) {
+              onSteerAgent?.(input.trim());
+              form.reset();
+            }
+          }}
+        >
+          <textarea
+            name="steer"
+            aria-label="Steer agent"
+            placeholder="Steer the running agent"
+            disabled={!canSteer}
+            style={promptInputStyle}
+          />
+          <button
+            type="submit"
+            disabled={!canSteer || onSteerAgent === undefined}
+            style={buttonStyle}
+          >
+            Send steer
+          </button>
+        </form>
+      ) : null}
 
       {commandError ? (
         <div role="alert" style={errorStyle}>
@@ -126,6 +173,12 @@ const controlStatusStyle: React.CSSProperties = {
   fontSize: "0.9rem",
 };
 
+const controlActionsStyle: React.CSSProperties = {
+  display: "flex",
+  gap: "0.5rem",
+  flexWrap: "wrap",
+};
+
 const promptFormStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) auto",
@@ -153,6 +206,12 @@ const buttonStyle: React.CSSProperties = {
   color: "#fffaf1",
   background: "#6f4b22",
   cursor: "pointer",
+};
+
+const dangerButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  borderColor: "#8d3a34",
+  background: "#8d3a34",
 };
 
 const headerStyle: React.CSSProperties = {

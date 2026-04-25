@@ -9,8 +9,10 @@ import type { SessionEvent } from "../api/sessionEvents";
 
 vi.mock("../api/sessionCommands", () => ({
   joinSession: vi.fn(),
+  abortAgent: vi.fn(),
   claimControl: vi.fn(),
   promptAgent: vi.fn(),
+  steerAgent: vi.fn(),
 }));
 
 vi.mock("../api/sessions", () => ({
@@ -183,6 +185,113 @@ describe("SessionPage", () => {
       );
     });
     expect(await screen.findByText("Queued")).toBeInTheDocument();
+  });
+
+  it("steers a running agent as the current controller", async () => {
+    const runningSnapshot = sessionSnapshot({
+      agent_status: "running",
+      agent_output_status: "streaming",
+      controller_id: "user-1",
+      viewers: ["user-1"],
+    });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(runningSnapshot);
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(runningSnapshot);
+    vi.mocked(sessionCommandsApi.steerAgent).mockResolvedValue(runningSnapshot);
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Steer agent")).toBeEnabled();
+    });
+
+    fireEvent.change(screen.getByLabelText("Steer agent"), {
+      target: { value: "Focus on tests" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send steer" }));
+
+    await waitFor(() => {
+      expect(sessionCommandsApi.steerAgent).toHaveBeenCalledWith(
+        "session-1",
+        "user-1",
+        "Focus on tests",
+      );
+    });
+  });
+
+  it("aborts a running agent as the current controller", async () => {
+    const runningSnapshot = sessionSnapshot({
+      agent_status: "running",
+      agent_output_status: "streaming",
+      controller_id: "user-1",
+      viewers: ["user-1"],
+    });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(runningSnapshot);
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(runningSnapshot);
+    vi.mocked(sessionCommandsApi.abortAgent).mockResolvedValue(
+      sessionSnapshot({
+        agent_status: "idle",
+        agent_output_status: "complete",
+        controller_id: "user-1",
+        viewers: ["user-1"],
+      }),
+    );
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Abort run" })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Abort run" }));
+
+    await waitFor(() => {
+      expect(sessionCommandsApi.abortAgent).toHaveBeenCalledWith("session-1", "user-1");
+    });
+  });
+
+  it("does not show steer or abort controls to non-controllers", async () => {
+    const runningSnapshot = sessionSnapshot({
+      agent_status: "running",
+      agent_output_status: "streaming",
+      controller_id: "user-2",
+      viewers: ["user-1", "user-2"],
+    });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(runningSnapshot);
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(runningSnapshot);
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("user-2")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByLabelText("Steer agent")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Abort run" })).not.toBeInTheDocument();
+  });
+
+  it("shows command errors from steer failures", async () => {
+    const runningSnapshot = sessionSnapshot({
+      agent_status: "running",
+      agent_output_status: "streaming",
+      controller_id: "user-1",
+      viewers: ["user-1"],
+    });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(runningSnapshot);
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(runningSnapshot);
+    vi.mocked(sessionCommandsApi.steerAgent).mockRejectedValue(new Error("Failed to steer agent"));
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Steer agent")).toBeEnabled();
+    });
+
+    fireEvent.change(screen.getByLabelText("Steer agent"), {
+      target: { value: "Focus on tests" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send steer" }));
+
+    expect(await screen.findByText("Failed to steer agent")).toBeInTheDocument();
   });
 });
 

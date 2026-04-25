@@ -57,3 +57,42 @@ export async function promptAgent(sessionId: string, userId: string, text: strin
 
   return data;
 }
+
+export async function steerAgent(sessionId: string, userId: string, text: string) {
+  const { data, error } = await apiClient.POST("/sessions/{session_id}/agent/steer", {
+    params: {
+      path: {
+        session_id: sessionId,
+      },
+    },
+    body: {
+      user_id: userId,
+      text,
+    },
+  });
+
+  if (error || !data) {
+    throw new Error("Failed to steer agent");
+  }
+
+  return data;
+}
+
+export async function abortAgent(sessionId: string, userId: string) {
+  const { data, error } = await apiClient.POST("/sessions/{session_id}/agent/abort", {
+    params: {
+      path: {
+        session_id: sessionId,
+      },
+    },
+    body: {
+      user_id: userId,
+    },
+  });
+
+  if (error || !data) {
+    throw new Error("Failed to abort agent");
+  }
+
+  return data;
+}

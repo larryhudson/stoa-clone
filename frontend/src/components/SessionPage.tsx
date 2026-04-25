@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { claimControl, joinSession, promptAgent } from "../api/sessionCommands";
+import {
+  abortAgent,
+  claimControl,
+  joinSession,
+  promptAgent,
+  steerAgent,
+} from "../api/sessionCommands";
 import { getSession } from "../api/sessions";
 import { subscribeToSessionEvents } from "../api/sessionEventStream";
 import type { SessionViewModel } from "../lib/sessionTypes";
@@ -105,6 +111,16 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
       onPromptAgent={(text) => {
         void runCommand(async () => {
           setSession(sessionFromSnapshot(await promptAgent(sessionId, userId, text)));
+        });
+      }}
+      onSteerAgent={(text) => {
+        void runCommand(async () => {
+          setSession(sessionFromSnapshot(await steerAgent(sessionId, userId, text)));
+        });
+      }}
+      onAbortAgent={() => {
+        void runCommand(async () => {
+          setSession(sessionFromSnapshot(await abortAgent(sessionId, userId)));
         });
       }}
     />
