@@ -48,11 +48,30 @@ Preferred split:
 
 Do not push snapshot/state-fetch responsibilities into the websocket protocol unless a test or requirement clearly calls for it.
 
+### Frontend consumes snapshots plus events
+The frontend should initialize from HTTP read models, then apply websocket events incrementally.
+
+Keep the client model aligned with the server read model:
+- fetch current session state first
+- subscribe to future events second
+- on reconnect, refresh from HTTP before trusting new live events
+
+Do not make the UI reconstruct core state entirely from websocket history when the server already exposes a read model.
+
 ### Domain knows events, not websockets
 The domain may publish typed events.
 It should not know about websocket connections or transport concerns.
 
 Websocket broadcasting belongs in infrastructure / API layers.
+
+### Frontend reducer scope should stay narrow
+The frontend may use reducers where the UI is consuming server-driven event streams.
+
+In this repo, reducers are a good fit for:
+- session state derived from API snapshots plus websocket events
+- agent output/status transitions driven by typed runtime events
+
+Do not force reducer patterns onto purely local UI concerns like form inputs, panel visibility, or temporary selection state. Prefer simple local state for those.
 
 ---
 
@@ -101,6 +120,36 @@ Bias toward:
 
 Avoid heavy end-to-end UI testing unless explicitly needed.
 
+For frontend work, use a similar pyramid:
+1. reducer/view-model tests
+2. component rendering/interaction tests
+3. a small number of browser integration tests
+
+Do not make full browser automation the default red-green loop for ordinary UI behavior.
+
+### Frontend stack
+The frontend uses:
+- React
+- Vite
+- Vitest
+- Testing Library
+
+Keep frontend code and tooling under `frontend/`.
+
+### Frontend TDD workflow
+For UI work, prefer:
+1. failing reducer/view-model test for event/state behavior
+2. minimal implementation
+3. failing component test for rendering/interaction behavior
+4. minimal implementation
+5. broader browser-level coverage only for key end-to-end flows
+
+Examples of behavior that should usually start with reducer/view-model tests:
+- websocket event application
+- agent output/status transitions
+- control gating
+- reconnect/snapshot merge behavior
+
 ### Use fixtures, but keep tests readable
 Prefer pytest fixtures for reusable setup.
 If setup needs variation, prefer fixture factories over a growing list of one-off fixtures.
@@ -123,6 +172,11 @@ If logic feels important to product behavior, it probably belongs in a service.
 Read behavior and state-changing behavior often evolve differently.
 Keep them separate when that improves clarity.
 
+The same applies in the frontend:
+- server snapshots/read models should be treated as query state
+- prompt/steer/abort/claim actions should be treated as commands
+- live websocket events should update query state, not replace command handling
+
 ### Be explicit about failure paths
 Failure behavior is a first-class requirement.
 When infrastructure can fail, tests should drive:
@@ -133,4 +187,3 @@ When infrastructure can fail, tests should drive:
 ### Prefer simple, swappable infrastructure
 Start with the smallest implementation that satisfies tests.
 Keep infrastructure replaceable.
-

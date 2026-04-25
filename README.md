@@ -26,6 +26,50 @@ uv run pytest -q
 uv run uvicorn app.main:app --reload
 ```
 
+## Frontend
+
+The frontend lives under `frontend/` and uses Vite + React + Vitest.
+
+### Install frontend dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+If Node is installed through `nvm`, make sure the active shell has your Node bin directory on `PATH`.
+
+### Run frontend tests
+
+```bash
+cd frontend
+npm test
+```
+
+### Generate frontend API types from OpenAPI
+
+Export the backend schema first:
+
+```bash
+uv run python scripts/export_openapi.py
+```
+
+Then generate the frontend TypeScript schema:
+
+```bash
+cd frontend
+npm run api:generate
+```
+
+The frontend uses `openapi-typescript` for schema types and `openapi-fetch` for the runtime client.
+
+### Run the frontend dev server
+
+```bash
+cd frontend
+npm run dev
+```
+
 ### Run tests in watch mode
 
 ```bash
@@ -70,6 +114,12 @@ For agent execution, the default app container starts `pi` in RPC mode from the 
 
 ```text
 pi --mode rpc --no-session
+```
+
+If `pi` is not on the process `PATH`, set `PI_BIN` to an absolute binary path before starting the app or running tests:
+
+```bash
+PI_BIN=/absolute/path/to/pi uv run uvicorn app.main:app --reload
 ```
 
 Tests generally use in-memory stores and fake runtimes unless a test explicitly targets persistence or real git cloning behavior.
