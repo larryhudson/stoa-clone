@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { claimControl, promptAgent } from "../api/sessionCommands";
+import { claimControl, joinSession, promptAgent } from "../api/sessionCommands";
 import { getSession } from "../api/sessions";
 import { subscribeToSessionEvents } from "../api/sessionEventStream";
 import type { SessionViewModel } from "../lib/sessionTypes";
@@ -19,7 +19,7 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
   const [commandError, setCommandError] = useState<string | null>(null);
   const [isCommandPending, setIsCommandPending] = useState(false);
   const sessionQuery = useQuery({
-    queryKey: ["session", sessionId],
+    queryKey: ["session", sessionId, userId],
     queryFn: async () => sessionFromSnapshot(await getSession(sessionId)),
   });
 
@@ -34,18 +34,42 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
       return;
     }
 
+    let active = true;
+    joinSession(sessionId, userId)
+      .then((snapshot) => {
+        if (active) {
+          setSession(sessionFromSnapshot(snapshot));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setCommandError("Failed to join session");
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [sessionId, sessionQuery.data, userId]);
+
+  useEffect(() => {
+    if (!sessionQuery.data) {
+      return;
+    }
+
     return subscribeToSessionEvents(
       sessionId,
       (event) => {
         setSession((current) => (current ? applySessionEvent(current, event) : current));
       },
       {
+        userId,
         onReconnect: async () => {
           setSession(sessionFromSnapshot(await getSession(sessionId)));
         },
       },
     );
-  }, [sessionId, sessionQuery.data]);
+  }, [sessionId, sessionQuery.data, userId]);
 
   if (sessionQuery.isPending) {
     return <div style={messageStyle}>Loading session...</div>;

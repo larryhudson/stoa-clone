@@ -1,11 +1,14 @@
 import { parseSessionEvent } from "./sessionEventParser";
 import type { SessionEvent } from "./sessionEvents";
 
-export function sessionEventsUrl(sessionId: string): string {
+export function sessionEventsUrl(sessionId: string, userId?: string): string {
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
   const path = `${baseUrl.replace(/\/$/, "")}/sessions/${encodeURIComponent(sessionId)}/events/ws`;
   const url = new URL(path, window.location.href);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  if (userId) {
+    url.searchParams.set("user_id", userId);
+  }
   return url.toString();
 }
 
@@ -13,6 +16,7 @@ export function subscribeToSessionEvents(
   sessionId: string,
   onEvent: (event: SessionEvent) => void,
   options: {
+    userId?: string;
     onReconnect?: () => Promise<void> | void;
     reconnectDelayMs?: number;
   } = {},
@@ -24,7 +28,7 @@ export function subscribeToSessionEvents(
   const reconnectDelayMs = options.reconnectDelayMs ?? 500;
 
   const connect = () => {
-    websocket = new WebSocket(sessionEventsUrl(sessionId));
+    websocket = new WebSocket(sessionEventsUrl(sessionId, options.userId));
 
     websocket.addEventListener("message", (message) => {
       try {

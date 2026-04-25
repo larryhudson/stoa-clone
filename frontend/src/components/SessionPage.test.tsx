@@ -8,6 +8,7 @@ import * as sessionsApi from "../api/sessions";
 import type { SessionEvent } from "../api/sessionEvents";
 
 vi.mock("../api/sessionCommands", () => ({
+  joinSession: vi.fn(),
   claimControl: vi.fn(),
   promptAgent: vi.fn(),
 }));
@@ -57,44 +58,29 @@ describe("SessionPage", () => {
   });
 
   it("renders the fetched session in the agent panel", async () => {
-    vi.mocked(sessionsApi.getSession).mockResolvedValue({
-      id: "session-1",
-      repo_url: "https://github.com/example/repo.git",
-      branch: "main",
-      status: "ready",
-      workspace_path: "/tmp/session-1",
-      agent_session_id: "agent-session-1",
-      agent_status: "idle",
+    const snapshot = sessionSnapshot({
       agent_output: "Fetched session output",
       agent_output_status: "complete",
-      agent_output_error: null,
       controller_id: "user-1",
       viewers: ["user-1"],
     });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(snapshot);
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(snapshot);
 
     renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
     await waitFor(() => {
       expect(screen.getByText("Fetched session output")).toBeInTheDocument();
     });
+    expect(sessionCommandsApi.joinSession).toHaveBeenCalledWith("session-1", "user-1");
+    expect(MockWebSocket.instances[0].url).toContain("user_id=user-1");
     expect(screen.getByText("Complete")).toBeInTheDocument();
   });
 
   it("applies session events received over websocket", async () => {
-    vi.mocked(sessionsApi.getSession).mockResolvedValue({
-      id: "session-1",
-      repo_url: "https://github.com/example/repo.git",
-      branch: "main",
-      status: "ready",
-      workspace_path: "/tmp/session-1",
-      agent_session_id: "agent-session-1",
-      agent_status: "idle",
-      agent_output: "",
-      agent_output_status: "empty",
-      agent_output_error: null,
-      controller_id: null,
-      viewers: [],
-    });
+    const snapshot = sessionSnapshot();
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(snapshot);
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(snapshot);
 
     renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
@@ -116,34 +102,15 @@ describe("SessionPage", () => {
 
   it("refreshes the session snapshot before reconnecting after websocket disconnect", async () => {
     vi.mocked(sessionsApi.getSession)
-      .mockResolvedValueOnce({
-        id: "session-1",
-        repo_url: "https://github.com/example/repo.git",
-        branch: "main",
-        status: "ready",
-        workspace_path: "/tmp/session-1",
-        agent_session_id: "agent-session-1",
-        agent_status: "idle",
-        agent_output: "Initial output",
-        agent_output_status: "complete",
-        agent_output_error: null,
-        controller_id: null,
-        viewers: [],
-      })
-      .mockResolvedValueOnce({
-        id: "session-1",
-        repo_url: "https://github.com/example/repo.git",
-        branch: "main",
-        status: "ready",
-        workspace_path: "/tmp/session-1",
-        agent_session_id: "agent-session-1",
-        agent_status: "idle",
-        agent_output: "Refreshed output",
-        agent_output_status: "complete",
-        agent_output_error: null,
-        controller_id: null,
-        viewers: [],
-      });
+      .mockResolvedValueOnce(
+        sessionSnapshot({ agent_output: "Initial output", agent_output_status: "complete" }),
+      )
+      .mockResolvedValueOnce(
+        sessionSnapshot({ agent_output: "Refreshed output", agent_output_status: "complete" }),
+      );
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(
+      sessionSnapshot({ agent_output: "Initial output", agent_output_status: "complete" }),
+    );
 
     renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
@@ -163,34 +130,11 @@ describe("SessionPage", () => {
   });
 
   it("claims control and enables prompting from the returned snapshot", async () => {
-    vi.mocked(sessionsApi.getSession).mockResolvedValue({
-      id: "session-1",
-      repo_url: "https://github.com/example/repo.git",
-      branch: "main",
-      status: "ready",
-      workspace_path: "/tmp/session-1",
-      agent_session_id: "agent-session-1",
-      agent_status: "idle",
-      agent_output: "",
-      agent_output_status: "empty",
-      agent_output_error: null,
-      controller_id: null,
-      viewers: [],
-    });
-    vi.mocked(sessionCommandsApi.claimControl).mockResolvedValue({
-      id: "session-1",
-      repo_url: "https://github.com/example/repo.git",
-      branch: "main",
-      status: "ready",
-      workspace_path: "/tmp/session-1",
-      agent_session_id: "agent-session-1",
-      agent_status: "idle",
-      agent_output: "",
-      agent_output_status: "empty",
-      agent_output_error: null,
-      controller_id: "user-1",
-      viewers: ["user-1"],
-    });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(sessionSnapshot());
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(sessionSnapshot());
+    vi.mocked(sessionCommandsApi.claimControl).mockResolvedValue(
+      sessionSnapshot({ controller_id: "user-1", viewers: ["user-1"] }),
+    );
 
     renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
@@ -208,34 +152,17 @@ describe("SessionPage", () => {
   });
 
   it("sends prompts as the current controller", async () => {
-    vi.mocked(sessionsApi.getSession).mockResolvedValue({
-      id: "session-1",
-      repo_url: "https://github.com/example/repo.git",
-      branch: "main",
-      status: "ready",
-      workspace_path: "/tmp/session-1",
-      agent_session_id: "agent-session-1",
-      agent_status: "idle",
-      agent_output: "",
-      agent_output_status: "empty",
-      agent_output_error: null,
-      controller_id: "user-1",
-      viewers: ["user-1"],
-    });
-    vi.mocked(sessionCommandsApi.promptAgent).mockResolvedValue({
-      id: "session-1",
-      repo_url: "https://github.com/example/repo.git",
-      branch: "main",
-      status: "ready",
-      workspace_path: "/tmp/session-1",
-      agent_session_id: "agent-session-1",
-      agent_status: "running",
-      agent_output: "",
-      agent_output_status: "pending",
-      agent_output_error: null,
-      controller_id: "user-1",
-      viewers: ["user-1"],
-    });
+    const controllerSnapshot = sessionSnapshot({ controller_id: "user-1", viewers: ["user-1"] });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(controllerSnapshot);
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(controllerSnapshot);
+    vi.mocked(sessionCommandsApi.promptAgent).mockResolvedValue(
+      sessionSnapshot({
+        agent_status: "running",
+        agent_output_status: "pending",
+        controller_id: "user-1",
+        viewers: ["user-1"],
+      }),
+    );
 
     renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
 
@@ -258,6 +185,26 @@ describe("SessionPage", () => {
     expect(await screen.findByText("Queued")).toBeInTheDocument();
   });
 });
+
+function sessionSnapshot(
+  overrides: Partial<Awaited<ReturnType<typeof sessionsApi.getSession>>> = {},
+): Awaited<ReturnType<typeof sessionsApi.getSession>> {
+  return {
+    id: "session-1",
+    repo_url: "https://github.com/example/repo.git",
+    branch: "main",
+    status: "ready",
+    workspace_path: "/tmp/session-1",
+    agent_session_id: "agent-session-1",
+    agent_status: "idle",
+    agent_output: "",
+    agent_output_status: "empty",
+    agent_output_error: null,
+    controller_id: null,
+    viewers: [],
+    ...overrides,
+  };
+}
 
 function renderWithQueryClient(element: React.ReactElement) {
   const queryClient = new QueryClient({
