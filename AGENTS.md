@@ -141,6 +141,7 @@ Use the repo tooling before handing work back when it is relevant to the files c
 Full verification:
 - run `make check` when you want to check everything, especially before committing or handing back a broad change
 - `make check` runs backend tests/checks and frontend tests/checks/build
+- `make check` uses `scripts/issue_check.py` and prints captured command output only when a command fails
 
 Backend/Python:
 - dependencies are managed with `uv`

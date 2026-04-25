@@ -78,6 +78,10 @@ Run the full verification sweep:
 make check
 ```
 
+`make check` runs each command through `scripts/issue_check.py`. Passing commands only print a
+checkmarked label; failing commands print the command and rendered issue output. Backend tests are
+rendered from pytest JUnit XML; frontend tests are rendered from Vitest JSON.
+
 `make check` runs:
 
 - backend tests
