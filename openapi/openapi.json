@@ -1,6 +1,24 @@
 {
   "components": {
     "schemas": {
+      "AddChatMessageRequest": {
+        "properties": {
+          "author_id": {
+            "title": "Author Id",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "author_id",
+          "body"
+        ],
+        "title": "AddChatMessageRequest",
+        "type": "object"
+      },
       "AddNoteRequest": {
         "properties": {
           "author_id": {
@@ -48,6 +66,34 @@
           "text"
         ],
         "title": "AgentPromptRequest",
+        "type": "object"
+      },
+      "ChatMessageResponse": {
+        "properties": {
+          "author_id": {
+            "title": "Author Id",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "author_id",
+          "body",
+          "created_at"
+        ],
+        "title": "ChatMessageResponse",
         "type": "object"
       },
       "ClaimControlRequest": {
@@ -181,6 +227,60 @@
         "title": "PresenceResponse",
         "type": "object"
       },
+      "PromptSuggestionActionRequest": {
+        "properties": {
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "title": "PromptSuggestionActionRequest",
+        "type": "object"
+      },
+      "PromptSuggestionResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "source_message_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Message Ids",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "reason",
+          "source_message_ids",
+          "status",
+          "created_at"
+        ],
+        "title": "PromptSuggestionResponse",
+        "type": "object"
+      },
       "SessionResponse": {
         "properties": {
           "agent_output": {
@@ -221,6 +321,13 @@
             "title": "Branch",
             "type": "string"
           },
+          "chat_messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageResponse"
+            },
+            "title": "Chat Messages",
+            "type": "array"
+          },
           "controller_id": {
             "anyOf": [
               {
@@ -235,6 +342,13 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "prompt_suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/PromptSuggestionResponse"
+            },
+            "title": "Prompt Suggestions",
+            "type": "array"
           },
           "repo_url": {
             "title": "Repo Url",
@@ -275,7 +389,9 @@
           "agent_output_status",
           "agent_output_error",
           "controller_id",
-          "viewers"
+          "viewers",
+          "chat_messages",
+          "prompt_suggestions"
         ],
         "title": "SessionResponse",
         "type": "object"
@@ -318,6 +434,27 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WorkspaceReviewResponse": {
+        "properties": {
+          "changed_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Files",
+            "type": "array"
+          },
+          "diff": {
+            "title": "Diff",
+            "type": "string"
+          }
+        },
+        "required": [
+          "changed_files",
+          "diff"
+        ],
+        "title": "WorkspaceReviewResponse",
         "type": "object"
       }
     }
@@ -550,6 +687,96 @@
           }
         },
         "summary": "Steer Agent"
+      }
+    },
+    "/sessions/{session_id}/chat": {
+      "get": {
+        "operationId": "list_chat_sessions__session_id__chat_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChatMessageResponse"
+                  },
+                  "title": "Response List Chat Sessions  Session Id  Chat Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Chat"
+      },
+      "post": {
+        "operationId": "post_chat_message_sessions__session_id__chat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddChatMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Chat Message"
       }
     },
     "/sessions/{session_id}/control/claim": {
@@ -1070,6 +1297,122 @@
         "summary": "Get Presence"
       }
     },
+    "/sessions/{session_id}/prompt-suggestions/{suggestion_id}/accept": {
+      "post": {
+        "operationId": "accept_prompt_suggestion_sessions__session_id__prompt_suggestions__suggestion_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptSuggestionActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Prompt Suggestion"
+      }
+    },
+    "/sessions/{session_id}/prompt-suggestions/{suggestion_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_prompt_suggestion_sessions__session_id__prompt_suggestions__suggestion_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptSuggestionActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dismiss Prompt Suggestion"
+      }
+    },
     "/sessions/{session_id}/start": {
       "post": {
         "operationId": "start_session_sessions__session_id__start_post",
@@ -1107,6 +1450,45 @@
           }
         },
         "summary": "Start Session"
+      }
+    },
+    "/sessions/{session_id}/workspace/review": {
+      "get": {
+        "operationId": "get_workspace_review_sessions__session_id__workspace_review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Workspace Review"
       }
     }
   }

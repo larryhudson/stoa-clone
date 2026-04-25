@@ -25,6 +25,39 @@ class NoteAddedEvent(SessionEventBase):
     created_at: int
 
 
+class ChatMessageAddedEvent(SessionEventBase):
+    type: Literal["chat_message_added"]
+    session_id: str
+    message_id: str
+    author_id: str
+    body: str
+    created_at: int
+
+
+class AgentPromptSuggestedEvent(SessionEventBase):
+    type: Literal["agent_prompt_suggested"]
+    session_id: str
+    suggestion_id: str
+    text: str
+    reason: str
+    source_message_ids: list[str]
+    created_at: int
+
+
+class AgentPromptSuggestionAcceptedEvent(SessionEventBase):
+    type: Literal["agent_prompt_suggestion_accepted"]
+    session_id: str
+    suggestion_id: str
+    user_id: str
+
+
+class AgentPromptSuggestionDismissedEvent(SessionEventBase):
+    type: Literal["agent_prompt_suggestion_dismissed"]
+    session_id: str
+    suggestion_id: str
+    user_id: str
+
+
 class ControlClaimedEvent(SessionEventBase):
     type: Literal["control_claimed"]
     session_id: str
@@ -108,6 +141,10 @@ class AgentRunFailedEvent(SessionEventBase):
 SessionEvent = Annotated[
     FileEditedEvent
     | NoteAddedEvent
+    | ChatMessageAddedEvent
+    | AgentPromptSuggestedEvent
+    | AgentPromptSuggestionAcceptedEvent
+    | AgentPromptSuggestionDismissedEvent
     | ControlClaimedEvent
     | ControlReleasedEvent
     | ViewerJoinedEvent

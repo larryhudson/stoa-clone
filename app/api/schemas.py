@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pydantic import BaseModel
 
 
@@ -19,6 +21,8 @@ class SessionResponse(BaseModel):
     agent_output_error: str | None
     controller_id: str | None
     viewers: list[str]
+    chat_messages: list[ChatMessageResponse]
+    prompt_suggestions: list[PromptSuggestionResponse]
 
 
 class JoinRequest(BaseModel):
@@ -38,6 +42,36 @@ class NoteResponse(BaseModel):
     author_id: str
     body: str
     created_at: int
+
+
+class AddChatMessageRequest(BaseModel):
+    author_id: str
+    body: str
+
+
+class ChatMessageResponse(BaseModel):
+    id: str
+    author_id: str
+    body: str
+    created_at: int
+
+
+class PromptSuggestionResponse(BaseModel):
+    id: str
+    text: str
+    reason: str
+    source_message_ids: list[str]
+    status: str
+    created_at: int
+
+
+class PromptSuggestionActionRequest(BaseModel):
+    user_id: str
+
+
+class WorkspaceReviewResponse(BaseModel):
+    changed_files: list[str]
+    diff: str
 
 
 class EditFileRequest(BaseModel):

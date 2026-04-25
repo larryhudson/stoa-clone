@@ -4,7 +4,11 @@ from app.api.event_schemas import SessionEvent
 from app.domain.events import (
     AgentAborted,
     AgentPromptSubmitted,
+    AgentPromptSuggested,
+    AgentPromptSuggestionAccepted,
+    AgentPromptSuggestionDismissed,
     AgentSteered,
+    ChatMessageAdded,
     ControlClaimed,
     ControlReleased,
     FileEdited,
@@ -39,6 +43,10 @@ def test_domain_events_serialize_to_session_event_schema() -> None:
     events = [
         FileEdited("session-1", "README.md", "user-1", "content"),
         NoteAdded("session-1", "user-1", "note", 1),
+        ChatMessageAdded("session-1", "chat-1", "user-1", "hello", 1),
+        AgentPromptSuggested("session-1", "suggestion-1", "Run tests", "reason", ["chat-1"], 2),
+        AgentPromptSuggestionAccepted("session-1", "suggestion-1", "user-1"),
+        AgentPromptSuggestionDismissed("session-1", "suggestion-2", "user-1"),
         ControlClaimed("session-1", "user-1"),
         ControlReleased("session-1", "user-1"),
         ViewerJoined("session-1", "user-1"),

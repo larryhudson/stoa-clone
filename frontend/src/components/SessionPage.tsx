@@ -3,17 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   abortAgent,
+  acceptPromptSuggestion,
   claimControl,
+  dismissPromptSuggestion,
   joinSession,
+  postChatMessage,
   promptAgent,
   steerAgent,
 } from "../api/sessionCommands";
-import { getSession } from "../api/sessions";
+import { getSession, getWorkspaceReview } from "../api/sessions";
 import { subscribeToSessionEvents } from "../api/sessionEventStream";
 import type { SessionViewModel } from "../lib/sessionTypes";
 import { applySessionEvent } from "../lib/sessionState";
 import { sessionFromSnapshot } from "../lib/sessionStateHelpers";
-import { AgentPanel } from "./AgentPanel";
+import { MeetingPanel } from "./MeetingPanel";
 
 type SessionPageProps = {
   sessionId: string;
@@ -28,6 +31,12 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
     queryKey: ["session", sessionId, userId],
     queryFn: async () => sessionFromSnapshot(await getSession(sessionId)),
   });
+  const reviewQuery = useQuery({
+    queryKey: ["workspace-review", sessionId],
+    queryFn: () => getWorkspaceReview(sessionId),
+    enabled: session?.workspace_path !== null,
+  });
+  const refetchWorkspaceReview = reviewQuery.refetch;
 
   useEffect(() => {
     if (sessionQuery.data) {
@@ -67,6 +76,13 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
       sessionId,
       (event) => {
         setSession((current) => (current ? applySessionEvent(current, event) : current));
+        if (
+          event.type === "agent_run_finished" ||
+          event.type === "agent_run_failed" ||
+          event.type === "file_edited"
+        ) {
+          void refetchWorkspaceReview();
+        }
       },
       {
         userId,
@@ -75,7 +91,7 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
         },
       },
     );
-  }, [sessionId, sessionQuery.data, userId]);
+  }, [refetchWorkspaceReview, sessionId, sessionQuery.data, userId]);
 
   if (sessionQuery.isPending) {
     return <div style={messageStyle}>Loading session...</div>;
@@ -98,7 +114,7 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
   }
 
   return (
-    <AgentPanel
+    <MeetingPanel
       session={session}
       userId={userId}
       commandError={commandError}
@@ -123,6 +139,27 @@ export function SessionPage({ sessionId, userId }: SessionPageProps) {
           setSession(sessionFromSnapshot(await abortAgent(sessionId, userId)));
         });
       }}
+      onPostChatMessage={(body) => {
+        void runCommand(async () => {
+          await postChatMessage(sessionId, userId, body);
+        });
+      }}
+      onAcceptSuggestion={(suggestionId) => {
+        void runCommand(async () => {
+          setSession(
+            sessionFromSnapshot(await acceptPromptSuggestion(sessionId, suggestionId, userId)),
+          );
+          await refetchWorkspaceReview();
+        });
+      }}
+      onDismissSuggestion={(suggestionId) => {
+        void runCommand(async () => {
+          setSession(
+            sessionFromSnapshot(await dismissPromptSuggestion(sessionId, suggestionId, userId)),
+          );
+        });
+      }}
+      workspaceReview={reviewQuery.data ?? null}
     />
   );
 }

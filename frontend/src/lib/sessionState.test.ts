@@ -122,4 +122,47 @@ describe("sessionState", () => {
     expect(left.controller_id).toBeNull();
     expect(left.viewers).toEqual(["user-1"]);
   });
+
+  it("applies chat and prompt suggestion events from the websocket contract", () => {
+    const initial = createSessionState({
+      id: "session-1",
+      repo_url: "https://github.com/example/repo.git",
+      branch: "main",
+    });
+
+    const withChat = applySessionEvent(initial, {
+      type: "chat_message_added",
+      session_id: "session-1",
+      message_id: "chat-1",
+      author_id: "user-1",
+      body: "Let's build meeting chat.",
+      created_at: 1,
+    });
+    const suggested = applySessionEvent(withChat, {
+      type: "agent_prompt_suggested",
+      session_id: "session-1",
+      suggestion_id: "suggestion-1",
+      text: "Add hello world to the README.",
+      reason: "A meeting message described implementation intent.",
+      source_message_ids: ["chat-1"],
+      created_at: 2,
+    });
+    const accepted = applySessionEvent(suggested, {
+      type: "agent_prompt_suggestion_accepted",
+      session_id: "session-1",
+      suggestion_id: "suggestion-1",
+      user_id: "user-1",
+    });
+
+    expect(withChat.chat_messages).toEqual([
+      {
+        id: "chat-1",
+        author_id: "user-1",
+        body: "Let's build meeting chat.",
+        created_at: 1,
+      },
+    ]);
+    expect(suggested.prompt_suggestions[0].status).toBe("pending");
+    expect(accepted.prompt_suggestions[0].status).toBe("accepted");
+  });
 });

@@ -3,7 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Protocol
 
-from app.domain.models import Session
+from app.domain.models import (
+    PromptSuggestionContext,
+    PromptSuggestionDraft,
+    Session,
+    WorkspaceSummary,
+)
 
 
 class SessionStore(Protocol):
@@ -26,3 +31,11 @@ class AgentRuntime(Protocol):
 
 class EventPublisher(Protocol):
     def publish(self, event: object) -> None: ...
+
+
+class PromptSuggestionGenerator(Protocol):
+    def suggest(self, context: PromptSuggestionContext) -> list[PromptSuggestionDraft]: ...
+
+
+class WorkspaceSummaryProvider(Protocol):
+    def get_summary(self, session: Session) -> WorkspaceSummary: ...

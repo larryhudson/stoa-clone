@@ -8,6 +8,10 @@
 export type SessionEvent =
   | FileEditedEvent
   | NoteAddedEvent
+  | ChatMessageAddedEvent
+  | AgentPromptSuggestedEvent
+  | AgentPromptSuggestionAcceptedEvent
+  | AgentPromptSuggestionDismissedEvent
   | ControlClaimedEvent
   | ControlReleasedEvent
   | ViewerJoinedEvent
@@ -31,47 +35,68 @@ export type Body = string;
 export type CreatedAt = number;
 export type SessionId1 = string;
 export type Type1 = "note_added";
+export type AuthorId1 = string;
+export type Body1 = string;
+export type CreatedAt1 = number;
+export type MessageId = string;
 export type SessionId2 = string;
-export type Type2 = "control_claimed";
-export type UserId = string;
+export type Type2 = "chat_message_added";
+export type CreatedAt2 = number;
+export type Reason = string;
 export type SessionId3 = string;
-export type Type3 = "control_released";
-export type UserId1 = string;
-export type SessionId4 = string;
-export type Type4 = "viewer_joined";
-export type UserId2 = string;
-export type SessionId5 = string;
-export type Type5 = "viewer_left";
-export type UserId3 = string;
-export type Error = string;
-export type SessionId6 = string;
-export type Type6 = "session_failed";
-export type AgentSessionId = string;
-export type SessionId7 = string;
-export type Type7 = "session_started";
-export type WorkspacePath = string;
-export type SessionId8 = string;
+export type SourceMessageIds = string[];
+export type SuggestionId = string;
 export type Text = string;
-export type Type8 = "agent_prompt_submitted";
+export type Type3 = "agent_prompt_suggested";
+export type SessionId4 = string;
+export type SuggestionId1 = string;
+export type Type4 = "agent_prompt_suggestion_accepted";
+export type UserId = string;
+export type SessionId5 = string;
+export type SuggestionId2 = string;
+export type Type5 = "agent_prompt_suggestion_dismissed";
+export type UserId1 = string;
+export type SessionId6 = string;
+export type Type6 = "control_claimed";
+export type UserId2 = string;
+export type SessionId7 = string;
+export type Type7 = "control_released";
+export type UserId3 = string;
+export type SessionId8 = string;
+export type Type8 = "viewer_joined";
 export type UserId4 = string;
 export type SessionId9 = string;
-export type Text1 = string;
-export type Type9 = "agent_steered";
+export type Type9 = "viewer_left";
 export type UserId5 = string;
+export type Error = string;
 export type SessionId10 = string;
-export type Type10 = "agent_aborted";
-export type UserId6 = string;
+export type Type10 = "session_failed";
+export type AgentSessionId = string;
 export type SessionId11 = string;
-export type Type11 = "agent_run_started";
-export type Delta = string;
+export type Type11 = "session_started";
+export type WorkspacePath = string;
 export type SessionId12 = string;
-export type Type12 = "agent_text_delta";
+export type Text1 = string;
+export type Type12 = "agent_prompt_submitted";
+export type UserId6 = string;
 export type SessionId13 = string;
-export type Type13 = "agent_run_finished";
+export type Text2 = string;
+export type Type13 = "agent_steered";
+export type UserId7 = string;
+export type SessionId14 = string;
+export type Type14 = "agent_aborted";
+export type UserId8 = string;
+export type SessionId15 = string;
+export type Type15 = "agent_run_started";
+export type Delta = string;
+export type SessionId16 = string;
+export type Type16 = "agent_text_delta";
+export type SessionId17 = string;
+export type Type17 = "agent_run_finished";
 export type Command = string | null;
 export type Error1 = string;
-export type SessionId14 = string;
-export type Type14 = "agent_run_failed";
+export type SessionId18 = string;
+export type Type18 = "agent_run_failed";
 
 export interface FileEditedEvent {
   content: Content;
@@ -87,70 +112,99 @@ export interface NoteAddedEvent {
   session_id: SessionId1;
   type: Type1;
 }
-export interface ControlClaimedEvent {
+export interface ChatMessageAddedEvent {
+  author_id: AuthorId1;
+  body: Body1;
+  created_at: CreatedAt1;
+  message_id: MessageId;
   session_id: SessionId2;
   type: Type2;
+}
+export interface AgentPromptSuggestedEvent {
+  created_at: CreatedAt2;
+  reason: Reason;
+  session_id: SessionId3;
+  source_message_ids: SourceMessageIds;
+  suggestion_id: SuggestionId;
+  text: Text;
+  type: Type3;
+}
+export interface AgentPromptSuggestionAcceptedEvent {
+  session_id: SessionId4;
+  suggestion_id: SuggestionId1;
+  type: Type4;
   user_id: UserId;
 }
-export interface ControlReleasedEvent {
-  session_id: SessionId3;
-  type: Type3;
+export interface AgentPromptSuggestionDismissedEvent {
+  session_id: SessionId5;
+  suggestion_id: SuggestionId2;
+  type: Type5;
   user_id: UserId1;
 }
-export interface ViewerJoinedEvent {
-  session_id: SessionId4;
-  type: Type4;
-  user_id: UserId2;
-}
-export interface ViewerLeftEvent {
-  session_id: SessionId5;
-  type: Type5;
-  user_id: UserId3;
-}
-export interface SessionFailedEvent {
-  error: Error;
+export interface ControlClaimedEvent {
   session_id: SessionId6;
   type: Type6;
+  user_id: UserId2;
 }
-export interface SessionStartedEvent {
-  agent_session_id: AgentSessionId;
+export interface ControlReleasedEvent {
   session_id: SessionId7;
   type: Type7;
-  workspace_path: WorkspacePath;
+  user_id: UserId3;
 }
-export interface AgentPromptSubmittedEvent {
+export interface ViewerJoinedEvent {
   session_id: SessionId8;
-  text: Text;
   type: Type8;
   user_id: UserId4;
 }
-export interface AgentSteeredEvent {
+export interface ViewerLeftEvent {
   session_id: SessionId9;
-  text: Text1;
   type: Type9;
   user_id: UserId5;
 }
-export interface AgentAbortedEvent {
+export interface SessionFailedEvent {
+  error: Error;
   session_id: SessionId10;
   type: Type10;
-  user_id: UserId6;
 }
-export interface AgentRunStartedEvent {
+export interface SessionStartedEvent {
+  agent_session_id: AgentSessionId;
   session_id: SessionId11;
   type: Type11;
+  workspace_path: WorkspacePath;
+}
+export interface AgentPromptSubmittedEvent {
+  session_id: SessionId12;
+  text: Text1;
+  type: Type12;
+  user_id: UserId6;
+}
+export interface AgentSteeredEvent {
+  session_id: SessionId13;
+  text: Text2;
+  type: Type13;
+  user_id: UserId7;
+}
+export interface AgentAbortedEvent {
+  session_id: SessionId14;
+  type: Type14;
+  user_id: UserId8;
+}
+export interface AgentRunStartedEvent {
+  session_id: SessionId15;
+  type: Type15;
 }
 export interface AgentTextDeltaEvent {
   delta: Delta;
-  session_id: SessionId12;
-  type: Type12;
+  session_id: SessionId16;
+  type: Type16;
 }
 export interface AgentRunFinishedEvent {
-  session_id: SessionId13;
-  type: Type13;
+  session_id: SessionId17;
+  type: Type17;
 }
 export interface AgentRunFailedEvent {
   command?: Command;
   error: Error1;
-  session_id: SessionId14;
-  type: Type14;
+  session_id: SessionId18;
+  type: Type18;
 }

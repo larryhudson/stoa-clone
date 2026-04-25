@@ -21,4 +21,6 @@ def test_can_fetch_session_state_via_api(client):
         "agent_output_error": None,
         "controller_id": None,
         "viewers": [],
+        "chat_messages": [],
+        "prompt_suggestions": [],
     }

@@ -127,3 +127,77 @@ export async function abortAgent(sessionId: string, userId: string) {
 
   return data;
 }
+
+export async function postChatMessage(sessionId: string, authorId: string, body: string) {
+  const { data, error } = await apiClient.POST("/sessions/{session_id}/chat", {
+    params: {
+      path: {
+        session_id: sessionId,
+      },
+    },
+    body: {
+      author_id: authorId,
+      body,
+    },
+  });
+
+  if (error || !data) {
+    throw new Error("Failed to post chat message");
+  }
+
+  return data;
+}
+
+export async function acceptPromptSuggestion(
+  sessionId: string,
+  suggestionId: string,
+  userId: string,
+) {
+  const { data, error } = await apiClient.POST(
+    "/sessions/{session_id}/prompt-suggestions/{suggestion_id}/accept",
+    {
+      params: {
+        path: {
+          session_id: sessionId,
+          suggestion_id: suggestionId,
+        },
+      },
+      body: {
+        user_id: userId,
+      },
+    },
+  );
+
+  if (error || !data) {
+    throw new Error("Failed to accept prompt suggestion");
+  }
+
+  return data;
+}
+
+export async function dismissPromptSuggestion(
+  sessionId: string,
+  suggestionId: string,
+  userId: string,
+) {
+  const { data, error } = await apiClient.POST(
+    "/sessions/{session_id}/prompt-suggestions/{suggestion_id}/dismiss",
+    {
+      params: {
+        path: {
+          session_id: sessionId,
+          suggestion_id: suggestionId,
+        },
+      },
+      body: {
+        user_id: userId,
+      },
+    },
+  );
+
+  if (error || !data) {
+    throw new Error("Failed to dismiss prompt suggestion");
+  }
+
+  return data;
+}

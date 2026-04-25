@@ -14,10 +14,14 @@ vi.mock("./api/sessionCommands", () => ({
   promptAgent: vi.fn(),
   steerAgent: vi.fn(),
   abortAgent: vi.fn(),
+  postChatMessage: vi.fn(),
+  acceptPromptSuggestion: vi.fn(),
+  dismissPromptSuggestion: vi.fn(),
 }));
 
 vi.mock("./api/sessions", () => ({
   getSession: vi.fn(),
+  getWorkspaceReview: vi.fn(),
 }));
 
 class MockWebSocket extends EventTarget {
@@ -46,6 +50,7 @@ describe("App", () => {
     vi.mocked(sessionCommandsApi.createSession).mockResolvedValue(created);
     vi.mocked(sessionCommandsApi.startSession).mockResolvedValue(started);
     vi.mocked(sessionsApi.getSession).mockResolvedValue(started);
+    vi.mocked(sessionsApi.getWorkspaceReview).mockResolvedValue({ changed_files: [], diff: "" });
     vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(started);
 
     renderWithQueryClient(<App />);
@@ -114,6 +119,8 @@ function sessionSnapshot(overrides: Partial<Awaited<ReturnType<typeof sessionsAp
     agent_output_error: null,
     controller_id: null,
     viewers: [],
+    chat_messages: [],
+    prompt_suggestions: [],
     ...overrides,
   };
 }

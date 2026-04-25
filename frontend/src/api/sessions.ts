@@ -19,3 +19,23 @@ export async function getSession(sessionId: string) {
 
   return data;
 }
+
+export async function getWorkspaceReview(sessionId: string) {
+  const { data, error } = await apiClient.GET("/sessions/{session_id}/workspace/review", {
+    params: {
+      path: {
+        session_id: sessionId,
+      },
+    },
+  });
+
+  if (error) {
+    throw new Error("Failed to fetch workspace review");
+  }
+
+  if (!data) {
+    throw new Error("Workspace review response was empty");
+  }
+
+  return data;
+}

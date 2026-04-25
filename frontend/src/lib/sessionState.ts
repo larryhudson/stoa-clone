@@ -16,6 +16,8 @@ export function createSessionState(seed: SessionSeed): SessionViewModel {
     agent_output_error: seed.agent_output_error ?? null,
     controller_id: seed.controller_id ?? null,
     viewers: seed.viewers ?? [],
+    chat_messages: seed.chat_messages ?? [],
+    prompt_suggestions: seed.prompt_suggestions ?? [],
   };
 }
 
@@ -103,6 +105,42 @@ export function applySessionEvent(state: SessionViewModel, event: SessionEvent):
         viewers: state.viewers.filter((viewer) => viewer !== event.user_id),
       };
 
+    case "chat_message_added":
+      return {
+        ...state,
+        chat_messages: [
+          ...state.chat_messages,
+          {
+            id: event.message_id,
+            author_id: event.author_id,
+            body: event.body,
+            created_at: event.created_at,
+          },
+        ],
+      };
+
+    case "agent_prompt_suggested":
+      return {
+        ...state,
+        prompt_suggestions: [
+          ...state.prompt_suggestions,
+          {
+            id: event.suggestion_id,
+            text: event.text,
+            reason: event.reason,
+            source_message_ids: event.source_message_ids,
+            status: "pending",
+            created_at: event.created_at,
+          },
+        ],
+      };
+
+    case "agent_prompt_suggestion_accepted":
+      return updateSuggestionStatus(state, event.suggestion_id, "accepted");
+
+    case "agent_prompt_suggestion_dismissed":
+      return updateSuggestionStatus(state, event.suggestion_id, "dismissed");
+
     case "agent_steered":
     case "agent_aborted":
     case "file_edited":
@@ -113,4 +151,17 @@ export function applySessionEvent(state: SessionViewModel, event: SessionEvent):
 
 function withViewer(viewers: string[], userId: string): string[] {
   return viewers.includes(userId) ? viewers : [...viewers, userId].sort();
+}
+
+function updateSuggestionStatus(
+  state: SessionViewModel,
+  suggestionId: string,
+  status: "accepted" | "dismissed",
+): SessionViewModel {
+  return {
+    ...state,
+    prompt_suggestions: state.prompt_suggestions.map((suggestion) =>
+      suggestion.id === suggestionId ? { ...suggestion, status } : suggestion,
+    ),
+  };
 }

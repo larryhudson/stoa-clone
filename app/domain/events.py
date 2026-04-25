@@ -23,6 +23,43 @@ class NoteAdded:
 
 
 @dataclass
+class ChatMessageAdded:
+    event_type: ClassVar[str] = "chat_message_added"
+    session_id: str
+    message_id: str
+    author_id: str
+    body: str
+    created_at: int
+
+
+@dataclass
+class AgentPromptSuggested:
+    event_type: ClassVar[str] = "agent_prompt_suggested"
+    session_id: str
+    suggestion_id: str
+    text: str
+    reason: str
+    source_message_ids: list[str]
+    created_at: int
+
+
+@dataclass
+class AgentPromptSuggestionAccepted:
+    event_type: ClassVar[str] = "agent_prompt_suggestion_accepted"
+    session_id: str
+    suggestion_id: str
+    user_id: str
+
+
+@dataclass
+class AgentPromptSuggestionDismissed:
+    event_type: ClassVar[str] = "agent_prompt_suggestion_dismissed"
+    session_id: str
+    suggestion_id: str
+    user_id: str
+
+
+@dataclass
 class ControlClaimed:
     event_type: ClassVar[str] = "control_claimed"
     session_id: str

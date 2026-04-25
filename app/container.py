@@ -6,9 +6,16 @@ from pathlib import Path
 from tempfile import gettempdir
 
 from app.domain.ports import AgentRuntime, EventPublisher, Runtime, SessionStore
-from app.domain.services import FileEditingService, FileService, SessionService
+from app.domain.services import (
+    FileEditingService,
+    FileService,
+    SessionService,
+    WorkspaceReviewService,
+)
 from app.infra.event_publisher import BroadcastingEventPublisher
+from app.infra.fake_prompt_suggestions import FakePromptSuggestionGenerator
 from app.infra.git_runtime import GitRuntime
+from app.infra.git_workspace_review import GitWorkspaceReviewProvider
 from app.infra.json_store import JsonSessionStore
 from app.infra.pi_rpc_agent_runtime import PiRpcAgentRuntime
 from app.infra.websocket_broadcaster import SessionEventBroadcaster
@@ -29,15 +36,23 @@ class Container:
     session_service: SessionService
     file_service: FileService
     file_editing_service: FileEditingService
+    workspace_review_service: WorkspaceReviewService
 
 
 def build_container(base_dir: Path | None = None) -> Container:
     root = base_dir or (Path(gettempdir()) / "multiplayer-agent-workspaces")
     store = JsonSessionStore(root / "sessions.json")
     runtime = GitRuntime(root)
+    workspace_summary_provider = GitWorkspaceReviewProvider()
     broadcaster = SessionEventBroadcaster()
     event_publisher = BroadcastingEventPublisher(broadcaster)
-    session_service = SessionService(store, runtime, event_publisher)
+    session_service = SessionService(
+        store,
+        runtime,
+        event_publisher,
+        prompt_suggestion_generator=FakePromptSuggestionGenerator(),
+        workspace_summary_provider=workspace_summary_provider,
+    )
 
     def handle_runtime_event(session_id: str, payload: dict) -> None:
         session_service.record_runtime_event(session_id, payload)
@@ -59,4 +74,5 @@ def build_container(base_dir: Path | None = None) -> Container:
         session_service=session_service,
         file_service=FileService(store),
         file_editing_service=FileEditingService(store, event_publisher),
+        workspace_review_service=WorkspaceReviewService(store, workspace_summary_provider),
     )

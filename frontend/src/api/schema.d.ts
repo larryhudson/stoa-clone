@@ -89,6 +89,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/sessions/{session_id}/chat": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Chat */
+    get: operations["list_chat_sessions__session_id__chat_get"];
+    put?: never;
+    /** Post Chat Message */
+    post: operations["post_chat_message_sessions__session_id__chat_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions/{session_id}/control/claim": {
     parameters: {
       query?: never;
@@ -244,6 +262,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/sessions/{session_id}/prompt-suggestions/{suggestion_id}/accept": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Accept Prompt Suggestion */
+    post: operations["accept_prompt_suggestion_sessions__session_id__prompt_suggestions__suggestion_id__accept_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/prompt-suggestions/{suggestion_id}/dismiss": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Dismiss Prompt Suggestion */
+    post: operations["dismiss_prompt_suggestion_sessions__session_id__prompt_suggestions__suggestion_id__dismiss_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions/{session_id}/start": {
     parameters: {
       query?: never;
@@ -261,10 +313,34 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/sessions/{session_id}/workspace/review": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Workspace Review */
+    get: operations["get_workspace_review_sessions__session_id__workspace_review_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AddChatMessageRequest */
+    AddChatMessageRequest: {
+      /** Author Id */
+      author_id: string;
+      /** Body */
+      body: string;
+    };
     /** AddNoteRequest */
     AddNoteRequest: {
       /** Author Id */
@@ -283,6 +359,17 @@ export interface components {
       text: string;
       /** User Id */
       user_id: string;
+    };
+    /** ChatMessageResponse */
+    ChatMessageResponse: {
+      /** Author Id */
+      author_id: string;
+      /** Body */
+      body: string;
+      /** Created At */
+      created_at: number;
+      /** Id */
+      id: string;
     };
     /** ClaimControlRequest */
     ClaimControlRequest: {
@@ -334,6 +421,26 @@ export interface components {
       /** Viewers */
       viewers: string[];
     };
+    /** PromptSuggestionActionRequest */
+    PromptSuggestionActionRequest: {
+      /** User Id */
+      user_id: string;
+    };
+    /** PromptSuggestionResponse */
+    PromptSuggestionResponse: {
+      /** Created At */
+      created_at: number;
+      /** Id */
+      id: string;
+      /** Reason */
+      reason: string;
+      /** Source Message Ids */
+      source_message_ids: string[];
+      /** Status */
+      status: string;
+      /** Text */
+      text: string;
+    };
     /** SessionResponse */
     SessionResponse: {
       /** Agent Output */
@@ -348,10 +455,14 @@ export interface components {
       agent_status: string;
       /** Branch */
       branch: string;
+      /** Chat Messages */
+      chat_messages: components["schemas"]["ChatMessageResponse"][];
       /** Controller Id */
       controller_id: string | null;
       /** Id */
       id: string;
+      /** Prompt Suggestions */
+      prompt_suggestions: components["schemas"]["PromptSuggestionResponse"][];
       /** Repo Url */
       repo_url: string;
       /** Status */
@@ -373,6 +484,13 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+    };
+    /** WorkspaceReviewResponse */
+    WorkspaceReviewResponse: {
+      /** Changed Files */
+      changed_files: string[];
+      /** Diff */
+      diff: string;
     };
   };
   responses: never;
@@ -539,6 +657,72 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SessionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_chat_sessions__session_id__chat_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChatMessageResponse"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_chat_message_sessions__session_id__chat_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AddChatMessageRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChatMessageResponse"];
         };
       };
       /** @description Validation Error */
@@ -925,6 +1109,78 @@ export interface operations {
       };
     };
   };
+  accept_prompt_suggestion_sessions__session_id__prompt_suggestions__suggestion_id__accept_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        suggestion_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PromptSuggestionActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dismiss_prompt_suggestion_sessions__session_id__prompt_suggestions__suggestion_id__dismiss_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        suggestion_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PromptSuggestionActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   start_session_sessions__session_id__start_post: {
     parameters: {
       query?: never;
@@ -943,6 +1199,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SessionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_workspace_review_sessions__session_id__workspace_review_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkspaceReviewResponse"];
         };
       };
       /** @description Validation Error */

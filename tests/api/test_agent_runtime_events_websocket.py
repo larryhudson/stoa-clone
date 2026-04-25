@@ -80,11 +80,18 @@ def test_watcher_receives_prompt_submission_before_live_agent_runtime_events_ove
     from fastapi.testclient import TestClient
 
     from app.container import Container
-    from app.domain.services import FileEditingService, FileService, SessionService
+    from app.domain.services import (
+        FileEditingService,
+        FileService,
+        SessionService,
+        WorkspaceReviewService,
+    )
     from app.infra.event_publisher import BroadcastingEventPublisher
+    from app.infra.git_workspace_review import GitWorkspaceReviewProvider
     from app.main import create_app
 
     event_publisher = BroadcastingEventPublisher(broadcaster)
+    workspace_summary_provider = GitWorkspaceReviewProvider()
     session_service: SessionService | None = None
 
     def publish_runtime_event(session_id: str, payload: dict) -> None:
@@ -104,6 +111,7 @@ def test_watcher_receives_prompt_submission_before_live_agent_runtime_events_ove
             session_service=session_service,
             file_service=FileService(store),
             file_editing_service=FileEditingService(store, event_publisher),
+            workspace_review_service=WorkspaceReviewService(store, workspace_summary_provider),
         )
     )
     client = TestClient(app)
@@ -153,11 +161,18 @@ def test_watcher_receives_thread_published_agent_runtime_events_over_websocket(
     from fastapi.testclient import TestClient
 
     from app.container import Container
-    from app.domain.services import FileEditingService, FileService, SessionService
+    from app.domain.services import (
+        FileEditingService,
+        FileService,
+        SessionService,
+        WorkspaceReviewService,
+    )
     from app.infra.event_publisher import BroadcastingEventPublisher
+    from app.infra.git_workspace_review import GitWorkspaceReviewProvider
     from app.main import create_app
 
     event_publisher = BroadcastingEventPublisher(broadcaster)
+    workspace_summary_provider = GitWorkspaceReviewProvider()
     session_service: SessionService | None = None
 
     def publish_runtime_event(session_id: str, payload: dict) -> None:
@@ -177,6 +192,7 @@ def test_watcher_receives_thread_published_agent_runtime_events_over_websocket(
             session_service=session_service,
             file_service=FileService(store),
             file_editing_service=FileEditingService(store, event_publisher),
+            workspace_review_service=WorkspaceReviewService(store, workspace_summary_provider),
         )
     )
     client = TestClient(app)

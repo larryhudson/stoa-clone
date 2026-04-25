@@ -9,7 +9,11 @@ from markdown import markdown
 from app.domain.events import (
     AgentAborted,
     AgentPromptSubmitted,
+    AgentPromptSuggested,
+    AgentPromptSuggestionAccepted,
+    AgentPromptSuggestionDismissed,
     AgentSteered,
+    ChatMessageAdded,
     ControlClaimed,
     ControlReleased,
     FileEdited,
@@ -20,8 +24,26 @@ from app.domain.events import (
     ViewerLeft,
     serialize_event,
 )
-from app.domain.models import AgentOutputStatus, AgentStatus, Note, Session, SessionStatus
-from app.domain.ports import AgentRuntime, EventPublisher, Runtime, SessionStore
+from app.domain.models import (
+    AgentOutputStatus,
+    AgentStatus,
+    ChatMessage,
+    Note,
+    PromptSuggestion,
+    PromptSuggestionContext,
+    PromptSuggestionStatus,
+    Session,
+    SessionStatus,
+    WorkspaceSummary,
+)
+from app.domain.ports import (
+    AgentRuntime,
+    EventPublisher,
+    PromptSuggestionGenerator,
+    Runtime,
+    SessionStore,
+    WorkspaceSummaryProvider,
+)
 
 HIDDEN_PATH_PARTS = {".git", "node_modules", "__pycache__", ".pytest_cache", ".DS_Store"}
 
@@ -37,11 +59,15 @@ class SessionService:
         runtime: Runtime,
         event_publisher: EventPublisher | None = None,
         agent_runtime: AgentRuntime | None = None,
+        prompt_suggestion_generator: PromptSuggestionGenerator | None = None,
+        workspace_summary_provider: WorkspaceSummaryProvider | None = None,
     ) -> None:
         self.store = store
         self.runtime = runtime
         self.event_publisher = event_publisher
         self.agent_runtime = agent_runtime
+        self.prompt_suggestion_generator = prompt_suggestion_generator
+        self.workspace_summary_provider = workspace_summary_provider
         self._clock = count(1)
 
     def create_session(self, repo_url: str, branch: str = "main") -> Session:
@@ -144,6 +170,36 @@ class SessionService:
         self.store.save(session)
         return note
 
+    def post_chat_message(self, session_id: str, author_id: str, body: str) -> ChatMessage:
+        session = self.store.get(session_id)
+        if author_id not in session.viewers:
+            raise PermissionError("only joined viewers can post chat messages")
+
+        created_at = next(self._clock)
+        message = ChatMessage(
+            id=f"chat-{created_at}",
+            author_id=author_id,
+            body=body,
+            created_at=created_at,
+        )
+        session.chat_messages.append(message)
+        self._publish_event(
+            session,
+            ChatMessageAdded(
+                session_id=session_id,
+                message_id=message.id,
+                author_id=author_id,
+                body=body,
+                created_at=created_at,
+            ),
+        )
+        self._generate_prompt_suggestions(session)
+        self.store.save(session)
+        return message
+
+    def list_chat_messages(self, session_id: str) -> list[ChatMessage]:
+        return list(self.store.get(session_id).chat_messages)
+
     def prompt_agent(self, session_id: str, user_id: str, text: str) -> Session:
         session = self.store.get(session_id)
         self._ensure_controller(session, user_id, action="prompt")
@@ -207,6 +263,52 @@ class SessionService:
         self.store.save(session)
         return session
 
+    def accept_prompt_suggestion(
+        self,
+        session_id: str,
+        user_id: str,
+        suggestion_id: str,
+    ) -> Session:
+        session = self.store.get(session_id)
+        self._ensure_suggestion_controller(session, user_id)
+        suggestion = self._find_prompt_suggestion(session, suggestion_id)
+        if suggestion.status != PromptSuggestionStatus.PENDING:
+            return session
+
+        suggestion.status = PromptSuggestionStatus.ACCEPTED
+        self._publish_event(
+            session,
+            AgentPromptSuggestionAccepted(
+                session_id=session_id,
+                suggestion_id=suggestion_id,
+                user_id=user_id,
+            ),
+        )
+        self.store.save(session)
+        return self.prompt_agent(session_id, user_id, suggestion.text)
+
+    def dismiss_prompt_suggestion(
+        self,
+        session_id: str,
+        user_id: str,
+        suggestion_id: str,
+    ) -> Session:
+        session = self.store.get(session_id)
+        self._ensure_suggestion_controller(session, user_id)
+        suggestion = self._find_prompt_suggestion(session, suggestion_id)
+        if suggestion.status == PromptSuggestionStatus.PENDING:
+            suggestion.status = PromptSuggestionStatus.DISMISSED
+            self._publish_event(
+                session,
+                AgentPromptSuggestionDismissed(
+                    session_id=session_id,
+                    suggestion_id=suggestion_id,
+                    user_id=user_id,
+                ),
+            )
+            self.store.save(session)
+        return session
+
     def list_notes(self, session_id: str) -> list[Note]:
         return list(self.store.get(session_id).notes)
 
@@ -240,6 +342,61 @@ class SessionService:
             raise PermissionError(f"only controller can {action} agent")
         if session.agent_session_id is None or self.agent_runtime is None:
             raise ValueError("session has no agent")
+
+    def _ensure_suggestion_controller(self, session: Session, user_id: str) -> None:
+        if session.controller_id != user_id:
+            raise PermissionError("only controller can manage prompt suggestions")
+        if session.agent_session_id is None or self.agent_runtime is None:
+            raise ValueError("session has no agent")
+
+    def _find_prompt_suggestion(self, session: Session, suggestion_id: str) -> PromptSuggestion:
+        for suggestion in session.prompt_suggestions:
+            if suggestion.id == suggestion_id:
+                return suggestion
+        raise ValueError("prompt suggestion not found")
+
+    def _generate_prompt_suggestions(self, session: Session) -> None:
+        generator = self.prompt_suggestion_generator
+        if generator is None:
+            return
+
+        workspace_summary = None
+        if self.workspace_summary_provider is not None and session.workspace_path is not None:
+            workspace_summary = self.workspace_summary_provider.get_summary(session)
+
+        context = PromptSuggestionContext(
+            transcript=list(session.chat_messages),
+            agent_status=session.agent_status,
+            recent_agent_events=list(session.events[-5:]),
+            pending_suggestions=[
+                suggestion
+                for suggestion in session.prompt_suggestions
+                if suggestion.status == PromptSuggestionStatus.PENDING
+            ],
+            workspace_summary=workspace_summary,
+        )
+        for draft in generator.suggest(context):
+            created_at = next(self._clock)
+            suggestion = PromptSuggestion(
+                id=f"suggestion-{created_at}",
+                text=draft.text,
+                reason=draft.reason,
+                source_message_ids=list(draft.source_message_ids),
+                status=PromptSuggestionStatus.PENDING,
+                created_at=created_at,
+            )
+            session.prompt_suggestions.append(suggestion)
+            self._publish_event(
+                session,
+                AgentPromptSuggested(
+                    session_id=session.id,
+                    suggestion_id=suggestion.id,
+                    text=suggestion.text,
+                    reason=suggestion.reason,
+                    source_message_ids=suggestion.source_message_ids,
+                    created_at=suggestion.created_at,
+                ),
+            )
 
     def _publish_event(self, session: Session, event: object) -> None:
         session.events.append(serialize_event(event))
@@ -325,3 +482,16 @@ class FileEditingService:
         session.events.append(serialize_event(event))
         self.store.save(session)
         self.event_publisher.publish(event)
+
+
+class WorkspaceReviewService:
+    def __init__(
+        self,
+        store: SessionStore,
+        workspace_summary_provider: WorkspaceSummaryProvider,
+    ) -> None:
+        self.store = store
+        self.workspace_summary_provider = workspace_summary_provider
+
+    def get_review(self, session_id: str) -> WorkspaceSummary:
+        return self.workspace_summary_provider.get_summary(self.store.get(session_id))

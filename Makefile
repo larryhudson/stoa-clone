@@ -1,4 +1,4 @@
-.PHONY: check check-backend check-frontend dev check-hivemind
+.PHONY: check check-backend check-frontend generate-api dev check-hivemind
 
 ISSUE_CHECK = python3 scripts/issue_check.py
 
@@ -14,6 +14,12 @@ check-frontend:
 	@$(ISSUE_CHECK) --renderer vitest-json "frontend tests" -- npm --silent --prefix frontend run test -- --run --silent=passed-only
 	@$(ISSUE_CHECK) "frontend check" -- npm --silent --prefix frontend run check
 	@$(ISSUE_CHECK) "frontend build" -- npm --silent --prefix frontend run build
+
+generate-api:
+	uv run python scripts/export_openapi.py
+	uv run python scripts/export_session_events_schema.py
+	npm --prefix frontend run api:generate
+	npm --prefix frontend run events:generate
 
 dev: check-hivemind
 	hivemind Procfile.dev

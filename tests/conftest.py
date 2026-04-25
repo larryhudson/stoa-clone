@@ -4,10 +4,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.container import Container
-from app.domain.services import FileEditingService, FileService, SessionService
+from app.domain.services import (
+    FileEditingService,
+    FileService,
+    SessionService,
+    WorkspaceReviewService,
+)
 from app.infra.event_publisher import BroadcastingEventPublisher
 from app.infra.fake_agent_runtime import FakeAgentRuntime
+from app.infra.fake_prompt_suggestions import FakePromptSuggestionGenerator
 from app.infra.fake_runtime import FakeRuntime
+from app.infra.git_workspace_review import GitWorkspaceReviewProvider
 from app.infra.in_memory import InMemorySessionStore
 from app.infra.websocket_broadcaster import SessionEventBroadcaster
 from app.main import create_app
@@ -98,7 +105,15 @@ def session_service(
     event_publisher: RecordingEventPublisher,
     agent_runtime: FakeAgentRuntime,
 ) -> SessionService:
-    return SessionService(store, runtime, event_publisher, agent_runtime)
+    workspace_summary_provider = GitWorkspaceReviewProvider()
+    return SessionService(
+        store,
+        runtime,
+        event_publisher,
+        agent_runtime,
+        FakePromptSuggestionGenerator(),
+        workspace_summary_provider,
+    )
 
 
 @pytest.fixture
@@ -115,6 +130,11 @@ def file_editing_service(
 
 
 @pytest.fixture
+def workspace_review_service(store: InMemorySessionStore) -> WorkspaceReviewService:
+    return WorkspaceReviewService(store, GitWorkspaceReviewProvider())
+
+
+@pytest.fixture
 def container(
     store: InMemorySessionStore,
     runtime: FakeRuntime,
@@ -123,6 +143,7 @@ def container(
     session_service: SessionService,
     file_service: FileService,
     file_editing_service: FileEditingService,
+    workspace_review_service: WorkspaceReviewService,
     agent_runtime: FakeAgentRuntime,
 ) -> Container:
     return Container(
@@ -133,6 +154,7 @@ def container(
         session_service=session_service,
         file_service=file_service,
         file_editing_service=file_editing_service,
+        workspace_review_service=workspace_review_service,
         agent_runtime=agent_runtime,
     )
 
@@ -163,14 +185,23 @@ def make_failing_client():
             clone_error=clone_error,
         )
         agent_runtime = ConfigurableFailingAgentRuntime(start_error=agent_start_error)
+        workspace_summary_provider = GitWorkspaceReviewProvider()
         container = Container(
             store=store,
             runtime=runtime,
             broadcaster=broadcaster,
             event_publisher=event_publisher,
-            session_service=SessionService(store, runtime, event_publisher, agent_runtime),
+            session_service=SessionService(
+                store,
+                runtime,
+                event_publisher,
+                agent_runtime,
+                FakePromptSuggestionGenerator(),
+                workspace_summary_provider,
+            ),
             file_service=FileService(store),
             file_editing_service=FileEditingService(store, event_publisher),
+            workspace_review_service=WorkspaceReviewService(store, workspace_summary_provider),
             agent_runtime=agent_runtime,
         )
         client = TestClient(

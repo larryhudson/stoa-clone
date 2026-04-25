@@ -27,11 +27,57 @@ class AgentOutputStatus(StrEnum):
     FAILED = "failed"
 
 
+class PromptSuggestionStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DISMISSED = "dismissed"
+
+
 @dataclass
 class Note:
     author_id: str
     body: str
     created_at: int
+
+
+@dataclass
+class ChatMessage:
+    id: str
+    author_id: str
+    body: str
+    created_at: int
+
+
+@dataclass
+class PromptSuggestion:
+    id: str
+    text: str
+    reason: str
+    source_message_ids: list[str]
+    status: PromptSuggestionStatus
+    created_at: int
+
+
+@dataclass
+class PromptSuggestionDraft:
+    text: str
+    reason: str
+    source_message_ids: list[str]
+
+
+@dataclass
+class WorkspaceSummary:
+    changed_files: list[str]
+    diff: str
+
+
+@dataclass
+class PromptSuggestionContext:
+    transcript: list[ChatMessage]
+    agent_status: AgentStatus
+    recent_agent_events: list[dict]
+    pending_suggestions: list[PromptSuggestion]
+    workspace_summary: WorkspaceSummary | None
 
 
 @dataclass
@@ -49,4 +95,6 @@ class Session:
     viewers: set[str] = field(default_factory=set)
     controller_id: str | None = None
     notes: list[Note] = field(default_factory=list)
+    chat_messages: list[ChatMessage] = field(default_factory=list)
+    prompt_suggestions: list[PromptSuggestion] = field(default_factory=list)
     events: list[dict] = field(default_factory=list)

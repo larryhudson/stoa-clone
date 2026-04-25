@@ -19,6 +19,10 @@ type SessionSnapshot = {
   agent_output_error: string | null;
   controller_id: string | null;
   viewers: string[];
+  chat_messages?: SessionViewModel["chat_messages"];
+  prompt_suggestions?: Array<
+    Omit<SessionViewModel["prompt_suggestions"][number], "status"> & { status: string }
+  >;
 };
 
 export function sessionFromSnapshot(snapshot: SessionSnapshot): SessionViewModel {
@@ -27,6 +31,11 @@ export function sessionFromSnapshot(snapshot: SessionSnapshot): SessionViewModel
     status: asSessionStatus(snapshot.status),
     agent_status: asAgentStatus(snapshot.agent_status),
     agent_output_status: asAgentOutputStatus(snapshot.agent_output_status),
+    chat_messages: snapshot.chat_messages ?? [],
+    prompt_suggestions: (snapshot.prompt_suggestions ?? []).map((suggestion) => ({
+      ...suggestion,
+      status: asPromptSuggestionStatus(suggestion.status),
+    })),
   });
 }
 
@@ -61,4 +70,13 @@ function asAgentOutputStatus(value: string): AgentOutputStatus {
     return value;
   }
   throw new Error(`Unexpected agent output status: ${value}`);
+}
+
+function asPromptSuggestionStatus(
+  value: string,
+): SessionViewModel["prompt_suggestions"][number]["status"] {
+  if (value === "pending" || value === "accepted" || value === "dismissed") {
+    return value;
+  }
+  throw new Error(`Unexpected prompt suggestion status: ${value}`);
 }

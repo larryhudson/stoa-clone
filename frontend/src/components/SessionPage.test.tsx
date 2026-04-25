@@ -10,13 +10,17 @@ import type { SessionEvent } from "../api/sessionEvents";
 vi.mock("../api/sessionCommands", () => ({
   joinSession: vi.fn(),
   abortAgent: vi.fn(),
+  acceptPromptSuggestion: vi.fn(),
   claimControl: vi.fn(),
+  dismissPromptSuggestion: vi.fn(),
   promptAgent: vi.fn(),
+  postChatMessage: vi.fn(),
   steerAgent: vi.fn(),
 }));
 
 vi.mock("../api/sessions", () => ({
   getSession: vi.fn(),
+  getWorkspaceReview: vi.fn(),
 }));
 
 class MockWebSocket extends EventTarget {
@@ -67,6 +71,10 @@ describe("SessionPage", () => {
       viewers: ["user-1"],
     });
     vi.mocked(sessionsApi.getSession).mockResolvedValue(snapshot);
+    vi.mocked(sessionsApi.getWorkspaceReview).mockResolvedValue({
+      changed_files: ["README.md"],
+      diff: "diff --git a/README.md b/README.md",
+    });
     vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(snapshot);
 
     renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
@@ -77,6 +85,7 @@ describe("SessionPage", () => {
     expect(sessionCommandsApi.joinSession).toHaveBeenCalledWith("session-1", "user-1");
     expect(MockWebSocket.instances[0].url).toContain("user_id=user-1");
     expect(screen.getByText("Complete")).toBeInTheDocument();
+    expect(screen.getByText("README.md")).toBeInTheDocument();
   });
 
   it("applies session events received over websocket", async () => {
@@ -100,6 +109,135 @@ describe("SessionPage", () => {
       expect(screen.getByText("Live output")).toBeInTheDocument();
     });
     expect(screen.getByText("Streaming")).toBeInTheDocument();
+  });
+
+  it("refreshes the workspace review when an agent run finishes", async () => {
+    const snapshot = sessionSnapshot({
+      agent_status: "running",
+      agent_output_status: "streaming",
+    });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(snapshot);
+    vi.mocked(sessionsApi.getWorkspaceReview)
+      .mockResolvedValueOnce({
+        changed_files: [],
+        diff: "",
+      })
+      .mockResolvedValueOnce({
+        changed_files: ["README.md"],
+        diff: "diff --git a/README.md b/README.md",
+      });
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(snapshot);
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    MockWebSocket.instances[0].receive({
+      type: "agent_run_finished",
+      session_id: "session-1",
+    });
+
+    await waitFor(() => {
+      expect(sessionsApi.getWorkspaceReview).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByText("README.md")).toBeInTheDocument();
+  });
+
+  it("renders chat messages and accepts suggested prompts as the controller", async () => {
+    const controllerSnapshot = sessionSnapshot({
+      controller_id: "user-1",
+      viewers: ["user-1"],
+      chat_messages: [
+        {
+          id: "chat-1",
+          author_id: "user-1",
+          body: "Let's add meeting chat.",
+          created_at: 1,
+        },
+      ],
+      prompt_suggestions: [
+        {
+          id: "suggestion-1",
+          text: "Add hello world to the README.",
+          reason: "A meeting message described implementation intent.",
+          source_message_ids: ["chat-1"],
+          status: "pending",
+          created_at: 2,
+        },
+      ],
+    });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(controllerSnapshot);
+    vi.mocked(sessionsApi.getWorkspaceReview).mockResolvedValue({
+      changed_files: [],
+      diff: "",
+    });
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(controllerSnapshot);
+    vi.mocked(sessionCommandsApi.acceptPromptSuggestion).mockResolvedValue(
+      sessionSnapshot({
+        ...controllerSnapshot,
+        agent_status: "running",
+        agent_output_status: "pending",
+        prompt_suggestions: [
+          {
+            ...controllerSnapshot.prompt_suggestions[0],
+            status: "accepted",
+          },
+        ],
+      }),
+    );
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Let's add meeting chat.")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Run suggestion" }));
+
+    await waitFor(() => {
+      expect(sessionCommandsApi.acceptPromptSuggestion).toHaveBeenCalledWith(
+        "session-1",
+        "suggestion-1",
+        "user-1",
+      );
+    });
+  });
+
+  it("posts meeting chat messages through the session page", async () => {
+    const snapshot = sessionSnapshot({ viewers: ["user-1"] });
+    vi.mocked(sessionsApi.getSession).mockResolvedValue(snapshot);
+    vi.mocked(sessionsApi.getWorkspaceReview).mockResolvedValue({
+      changed_files: [],
+      diff: "",
+    });
+    vi.mocked(sessionCommandsApi.joinSession).mockResolvedValue(snapshot);
+    vi.mocked(sessionCommandsApi.postChatMessage).mockResolvedValue({
+      id: "chat-1",
+      author_id: "user-1",
+      body: "Let's add meeting chat.",
+      created_at: 1,
+    });
+
+    renderWithQueryClient(<SessionPage sessionId="session-1" userId="user-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Meeting message")).toBeEnabled();
+    });
+
+    fireEvent.change(screen.getByLabelText("Meeting message"), {
+      target: { value: "Let's add meeting chat." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => {
+      expect(sessionCommandsApi.postChatMessage).toHaveBeenCalledWith(
+        "session-1",
+        "user-1",
+        "Let's add meeting chat.",
+      );
+    });
   });
 
   it("refreshes the session snapshot before reconnecting after websocket disconnect", async () => {
@@ -311,6 +449,8 @@ function sessionSnapshot(
     agent_output_error: null,
     controller_id: null,
     viewers: [],
+    chat_messages: [],
+    prompt_suggestions: [],
     ...overrides,
   };
 }

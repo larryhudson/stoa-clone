@@ -3,7 +3,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.domain.models import AgentOutputStatus, AgentStatus, Note, Session, SessionStatus
+from app.domain.models import (
+    AgentOutputStatus,
+    AgentStatus,
+    ChatMessage,
+    Note,
+    PromptSuggestion,
+    PromptSuggestionStatus,
+    Session,
+    SessionStatus,
+)
 
 
 class JsonSessionStore:
@@ -55,6 +64,26 @@ class JsonSessionStore:
                 }
                 for note in session.notes
             ],
+            "chat_messages": [
+                {
+                    "id": message.id,
+                    "author_id": message.author_id,
+                    "body": message.body,
+                    "created_at": message.created_at,
+                }
+                for message in session.chat_messages
+            ],
+            "prompt_suggestions": [
+                {
+                    "id": suggestion.id,
+                    "text": suggestion.text,
+                    "reason": suggestion.reason,
+                    "source_message_ids": list(suggestion.source_message_ids),
+                    "status": suggestion.status.value,
+                    "created_at": suggestion.created_at,
+                }
+                for suggestion in session.prompt_suggestions
+            ],
             "events": list(session.events),
         }
 
@@ -75,5 +104,17 @@ class JsonSessionStore:
             viewers=set(data["viewers"]),
             controller_id=data["controller_id"],
             notes=[Note(**note) for note in data["notes"]],
+            chat_messages=[ChatMessage(**message) for message in data.get("chat_messages", [])],
+            prompt_suggestions=[
+                PromptSuggestion(
+                    id=suggestion["id"],
+                    text=suggestion["text"],
+                    reason=suggestion["reason"],
+                    source_message_ids=list(suggestion["source_message_ids"]),
+                    status=PromptSuggestionStatus(suggestion["status"]),
+                    created_at=suggestion["created_at"],
+                )
+                for suggestion in data.get("prompt_suggestions", [])
+            ],
             events=list(data.get("events", [])),
         )

@@ -3,7 +3,12 @@ from __future__ import annotations
 from fastapi import Request
 
 from app.container import Container
-from app.domain.services import FileEditingService, FileService, SessionService
+from app.domain.services import (
+    FileEditingService,
+    FileService,
+    SessionService,
+    WorkspaceReviewService,
+)
 
 
 def get_container(request: Request) -> Container:
@@ -20,3 +25,7 @@ def get_file_service(request: Request) -> FileService:
 
 def get_file_editing_service(request: Request) -> FileEditingService:
     return get_container(request).file_editing_service
+
+
+def get_workspace_review_service(request: Request) -> WorkspaceReviewService:
+    return get_container(request).workspace_review_service

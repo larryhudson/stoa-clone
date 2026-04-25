@@ -17,10 +17,10 @@ export default function App() {
       <section style={heroStyle}>
         <div>
           <p style={kickerStyle}>multiplayer-agent</p>
-          <h1 style={headlineStyle}>Typed session snapshots with reducer-ready live state</h1>
+          <h1 style={headlineStyle}>Meet, guide the agent, review the diff</h1>
           <p style={copyStyle}>
-            The UI now loads a typed session snapshot over HTTP with TanStack Query. The reducer
-            remains the next layer for websocket-driven live event updates.
+            Start a shared work session for a repository, discuss the change in chat, approve
+            suggested agent prompts, and keep the resulting workspace diff in view.
           </p>
         </div>
         <div style={pillStyle}>
