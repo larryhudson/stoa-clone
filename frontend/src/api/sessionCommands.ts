@@ -1,5 +1,36 @@
 import { apiClient } from "./client";
 
+export async function createSession(repoUrl: string, branch: string) {
+  const { data, error } = await apiClient.POST("/sessions", {
+    body: {
+      repo_url: repoUrl,
+      branch,
+    },
+  });
+
+  if (error || !data) {
+    throw new Error("Failed to create session");
+  }
+
+  return data;
+}
+
+export async function startSession(sessionId: string) {
+  const { data, error } = await apiClient.POST("/sessions/{session_id}/start", {
+    params: {
+      path: {
+        session_id: sessionId,
+      },
+    },
+  });
+
+  if (error || !data) {
+    throw new Error("Failed to start session");
+  }
+
+  return data;
+}
+
 export async function joinSession(sessionId: string, userId: string) {
   const { data, error } = await apiClient.POST("/sessions/{session_id}/join", {
     params: {
