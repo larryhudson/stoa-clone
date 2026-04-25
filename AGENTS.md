@@ -130,11 +130,34 @@ Do not make full browser automation the default red-green loop for ordinary UI b
 ### Frontend stack
 The frontend uses:
 - React
-- Vite
-- Vitest
+- Vite+
 - Testing Library
 
 Keep frontend code and tooling under `frontend/`.
+
+### Tooling expectations
+Use the repo tooling before handing work back when it is relevant to the files changed.
+
+Backend/Python:
+- dependencies are managed with `uv`
+- tests run with `uv run pytest -q`
+- lint/format/type checks are covered by Ruff and ty
+
+Frontend:
+- run frontend commands from `frontend/`
+- use Vite+ commands (`vp dev`, `vp test`, `vp check`, `vp build`)
+- prefer `npm run ...` from root-level hooks or CI when a local frontend binary must be on `PATH`
+
+Pre-commit/CI:
+- `prek` is the pre-commit runner
+- `uv run prek run --all-files` is the full lint/format/type-check sweep
+- GitHub Actions should run backend tests, frontend tests, and `prek` on all files
+
+Codex hooks:
+- repo-local Codex hooks live under `.codex/`
+- after Codex file edits, the hook should auto-format and auto-lint changed Python/frontend files
+- when hooks modify files, they should add context telling Codex to inspect the resulting diff
+- keep hooks deterministic and fast; leave full test runs to explicit commands, pre-commit, or CI
 
 ### Frontend TDD workflow
 For UI work, prefer:
